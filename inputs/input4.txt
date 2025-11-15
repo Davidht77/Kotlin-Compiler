@@ -1,9 +1,18 @@
-fun int main()
-    var int i;
-    i = 0;
-    while i < 3 do
-        print(i);
-        i = i + 1
-    endwhile
-    return(0)
-endfun
+const val MAX = 10
+var count = 0
+
+fun factorial(n: Int): Int {
+    if (n <= 1) {
+        return 1
+    }
+    return n * factorial(n - 1)
+}
+
+fun main() {
+    val result = factorial(5)
+    println(result)
+    
+    for (i in 1..5) {
+        println(i * 2)
+    }
+}

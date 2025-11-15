@@ -1,10 +1,13 @@
-fun int main()
-    var int a;
-    a = 10;
-    if a < 5 then
-        print(1)
-    else
-        print(2)
-    endif
-    return(0)
-endfun
+fun main() {
+    var a = 0
+    var b = 1
+    var c = a == b
+    println(c)
+    var i = 0;
+    while (i < 10) {
+        if (i % 2 == 0) {
+            println(i);
+        }
+        i = i + 1;
+    }
+}

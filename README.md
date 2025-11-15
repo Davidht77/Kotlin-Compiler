@@ -1,45 +1,56 @@
-# Kotlin-Compiler
-
-## Gramatica inicial de Kotlin
 Program         ::= VarDecList FunDecList
 
 VarDecList      ::= (VarDec)*
 
 FunDecList      ::= (FunDec)+
 
-FunDec          ::= "fun" id "(" ParamDecList? ")" (":" Type)? Block
+FunDec          ::= "fun" id "(" ParamListOpt ")" TypeAnnotationOpt Block
 
-ParamDecList    ::= ParamDec ("," ParamDec)*
-ParamDec        ::= ("val"|"var") id ":" Type
+ParamListOpt    ::= (ParamDec ("," ParamDec)*) | ε
 
-VarDec          ::= ("val"|"var") id (":" Type)? ( "=" Exp )? ";"
+ParamDec        ::= VarSymbol id TypeAnnotationOpt
 
-Block           ::= "{" StmtList? "}"
+VarDec          ::= VarSymbol id TypeAnnotationOpt InitializerOpt StmtTerminator
 
-StmtList        ::= (Stmt)*
+VarSymbol       ::= ("const" | ε) ("val" | "var")
 
-Stmt            ::= VarDec
-                 | Exp ";"
-                 | PrintStmt
-                 | IfStmt
-                 | WhileStmt
-                 | ForStmt
+TypeAnnotationOpt ::= ":" Type | ε
+
+Type            ::= id
+
+InitializerOpt  ::= "=" Exp | ε
+
+Block           ::= "{" StmtListOpt "}"
+
+StmtList        ::= (Stmt StmtTerminator)*
+
+StmtListOpt     ::= StmtList | ε
+
+Stmt            ::= VarDec 
+                 | Exp 
+                 | PrintStmt 
+                 | IfStmt 
+                 | WhileStmt 
+                 | ForStmt 
                  | ReturnStmt
 
-PrintStmt       ::= ("println"|"print") "(" Exp? ")" ";"
+PrintStmt       ::= ("println"|"print") "(" ExpOpt ")"
 
-IfStmt          ::= "if" "(" Exp ")" Block ("else" Block)?
+IfStmt          ::= "if" "(" Exp ")" Block ElseOpt
+
+ElseOpt         ::= "else" Block | ε
 
 WhileStmt       ::= "while" "(" Exp ")" Block
 
 ForStmt         ::= "for" "(" id "in" Exp ")" Block
 
-ReturnStmt      ::= "return" (Exp)? ";"
+ReturnStmt      ::= "return" ExpOpt
+
+ExpOpt          ::= Exp | ε
 
 Exp             ::= Assignment
 
-Assignment      ::= id "=" Assignment   // asignación derecha a izquierda
-                 | LogicOr
+Assignment      ::= id "=" Assignment | LogicOr
 
 LogicOr         ::= LogicAnd ("||" LogicAnd)*
 
@@ -53,8 +64,7 @@ Additive        ::= Multiplicative (("+"|"-") Multiplicative)*
 
 Multiplicative  ::= Unary (("*"|"/"|"%") Unary)*
 
-Unary           ::= ("+"|"-"|"!") Unary
-                 | Primary
+Unary           ::= ("+"|"-"|"!") Unary | Primary
 
 Primary         ::= id
                  | Num
@@ -62,11 +72,8 @@ Primary         ::= id
                  | "(" Exp ")"
                  | FunctionCall
 
-FunctionCall    ::= id "(" ArgList? ")"
-ArgList         ::= Exp ("," Exp)*
+FunctionCall    ::= id "(" ArgListOpt ")"
 
-Type            ::= id   // puedes ampliar para incluir tipos básicos: Int, Boolean, etc.
+ArgListOpt      ::= (Exp ("," Exp)*) | ε
 
-Num             ::= [0-9]+
-Bool            ::= "true" | "false"
-id              ::= [a-zA-Z_][a-zA-Z0-9_]*
+StmtTerminator  ::= ";" | Newline

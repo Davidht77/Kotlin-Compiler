@@ -1,8 +1,22 @@
-fun int id(int x)
-    return(x)
-endfun
+var x = 10
+var y = 5
 
-fun int main()
-    print(id(42));
-    return(0)
-endfun
+fun add(a: Int, b: Int): Int {
+    return a + b
+}
+
+fun main() {
+    val sum = add(x, y)
+    println(sum)
+    
+    var i = 0
+    while (i < 5) {
+        if (i % 2 == 0) {
+            println(i)
+        }
+        i = i + 1
+    }
+    
+    val check = (x > y) && (sum != 0)
+    print(check)
+}
