@@ -17,29 +17,37 @@ public:
         POW,     // **
         LPAREN,  // (
         RPAREN,  // )
+        LKEY,    // {
+        RKEY,    // }
         SQRT,    // sqrt
         NUM,     // Número
         ERR,     // Error
         ID,      // ID
-        LE,
-        FUN,
-        ENDFUN,
-        RETURN,
-        SEMICOL,    
-        ASSIGN,
-        PRINT,
-        IF,
-        WHILE,
-        DO,
-        THEN,
-        ENDIF,
-        ENDWHILE,
-        ELSE,
+        LE,      // <=
+        GE,      // >=
+        EQ,      // ==
+        NE,      // !=
+        LT,      // <
+        GT,      // >
+        FUN,     // fun
+        ENDFUN,  // endfun
+        RETURN,  // return
+        SEMICOL, // ;
+        COLON,   // :
+        ASSIGN,  // =
+        PRINT,   // print
+        IF,      // if
+        WHILE,   // while
+        DO,      // do
+        THEN,    // then
+        ENDIF,   // endif
+        ENDWHILE, // endwhile
+        ELSE,    // else
         END,      // Fin de entrada
-        VAR,
-        COMA,
-        TRUE,
-        FALSE
+        VAR,     // var
+        COMA,    // ,
+        TRUE,    // true
+        FALSE    // false
     };
 
     // Atributos
