@@ -14,6 +14,7 @@ public:
         MINUS,   // -
         MUL,     // *
         DIV,     // /
+        MOD,     // %
         POW,     // **
         LPAREN,  // (
         RPAREN,  // )
@@ -36,18 +37,26 @@ public:
         COLON,   // :
         ASSIGN,  // =
         PRINT,   // print
+        PRINTLN, // println
         IF,      // if
         WHILE,   // while
+        FOR,     // for
         DO,      // do
         THEN,    // then
         ENDIF,   // endif
+        ENDFOR,  // endfor
         ENDWHILE, // endwhile
         ELSE,    // else
         END,      // Fin de entrada
         VAR,     // var
         COMA,    // ,
         TRUE,    // true
-        FALSE    // false
+        FALSE,   // false
+        DQM,     // "
+        SQM,     // '
+        CONJ,    // &&
+        DISJ,    // ||
+        NOT,     // !
     };
 
     // Atributos

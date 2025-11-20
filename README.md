@@ -1,3 +1,5 @@
+## Gramática
+
 Program         ::= VarDecList FunDecList
 
 VarDecList      ::= (VarDec)*
@@ -77,3 +79,22 @@ FunctionCall    ::= id "(" ArgListOpt ")"
 ArgListOpt      ::= (Exp ("," Exp)*) | ε
 
 StmtTerminator  ::= ";" | Newline
+
+## Extensiones del lenguaje implementadas
+
+- Conversión y promoción de tipos (.toString(), .toInt(), .toDouble(), .toLong(), etc)
+- Inferencia de tipos (var x = 5; var y = 5.0; var z = true;)
+- Tipos numericos (float, double, int, long, unsigned int, unsigned long)
+
+## Optimizaciones implementadas (Al menos 3)
+
+-Optimizar constantes (gencode)
+-Optimizar de condicionales (gencode)
+-Optimizar funciones (gencode) (funciones que no se usan)
+
+## Casos de prueba
+
+- 3 casos de funciones.
+- 5 casos para la implementación base.
+- 5 casos para las extensiones.
+- 5 casos para optimización.

@@ -52,6 +52,27 @@ ostream& operator<<(ostream& outs, const Token& tok) {
         case Token::ENDFUN:    outs << "TOKEN(ENDFUN, \""    << tok.text << "\")"; break;
         case Token::RETURN:    outs << "TOKEN(RETURN, \""    << tok.text << "\")"; break;
 
+        case Token::GE:    outs << "TOKEN(GE, \""    << tok.text << "\")"; break;
+        case Token::EQ:    outs << "TOKEN(EQ, \""    << tok.text << "\")"; break;
+        case Token::NE:    outs << "TOKEN(NE, \""    << tok.text << "\")"; break;
+        case Token::LT:    outs << "TOKEN(LT, \""    << tok.text << "\")"; break;
+        case Token::GT:    outs << "TOKEN(GT, \""    << tok.text << "\")"; break;
+        
+        case Token::LKEY:   outs << "TOKEN(LKEY, \""   << tok.text << "\")"; break;
+        case Token::RKEY:   outs << "TOKEN(RKEY, \""   << tok.text << "\")"; break;
+        case Token::COLON:  outs << "TOKEN(COLON, \""  << tok.text << "\")"; break;
+        case Token::TRUE:   outs << "TOKEN(TRUE, \""   << tok.text << "\")"; break;
+        case Token::FALSE:  outs << "TOKEN(FALSE, \""  << tok.text << "\")"; break;
+        case Token::PRINTLN:  outs << "TOKEN(PRINTLN, \""  << tok.text << "\")"; break;
+        case Token::MOD:    outs << "TOKEN(MOD, \""    << tok.text << "\")"; break;
+
+        case Token::DQM:    outs << "TOKEN(DQM, \""    << tok.text << "\")"; break;
+        case Token::SQM:    outs << "TOKEN(SQM, \""    << tok.text << "\")"; break;
+        case Token::CONJ:    outs << "TOKEN(CONJ, \""    << tok.text << "\")"; break;
+        case Token::DISJ:    outs << "TOKEN(DISJ, \""    << tok.text << "\")"; break;
+        case Token::NOT:    outs << "TOKEN(NOT, \""    << tok.text << "\")"; break;
+    
+
         case Token::END:    outs << "TOKEN(END)"; break;
     }
     return outs;

@@ -1,0 +1,12 @@
+Scanner
+
+TOKEN(PRINTLN, "println")
+TOKEN(LPAREN, "(")
+TOKEN(DQM, """)
+TOKEN(ID, "Hola")
+TOKEN(DQM, """)
+TOKEN(RPAREN, ")")
+TOKEN(END)
+
+Scanner exitoso
+
