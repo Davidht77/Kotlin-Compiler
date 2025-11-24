@@ -16,14 +16,20 @@ public:
     Parser(Scanner* scanner);       
     Program* parseProgram();
     FunDec* parseFunDec();
-    Body* parseBody();
     VarDec* parseVarDec();
-    Stm* parseStm();
-    Exp* parseCE();
-    Exp* parseBE();
-    Exp* parseE();
-    Exp* parseT();
-    Exp* parseF();
+    Block* parseBlock();
+    Stm* parseStmt();
+    
+    // Expression parsing hierarchy
+    Exp* parseExp();        // Assignment
+    Exp* parseLogicOr();    // ||
+    Exp* parseLogicAnd();   // &&
+    Exp* parseEquality();   // ==, !=
+    Exp* parseRelational(); // <, >, <=, >=
+    Exp* parseAdditive();   // +, -
+    Exp* parseMultiplicative(); // *, /, %
+    Exp* parseUnary();      // +, -, !
+    Exp* parsePrimary();    // id, num, bool, (), call
 };
 
 #endif // PARSER_H      

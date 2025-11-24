@@ -17,11 +17,25 @@ enum BinaryOp {
     MUL_OP, 
     DIV_OP,
     POW_OP,
-    LE_OP
+    MOD_OP, // Added MOD
+    LE_OP,
+    LT_OP,  // Added LT
+    GT_OP,  // Added GT
+    GE_OP,  // Added GE
+    EQ_OP,  // Added EQ
+    NE_OP,  // Added NE
+    AND_OP, // Added AND
+    OR_OP   // Added OR
+};
+
+class Stm{
+public:
+    virtual int accept(Visitor* visitor) = 0;
+    virtual ~Stm() = 0;
 };
 
 // Clase abstracta Exp
-class Exp {
+class Exp : public Stm { // Exp inherits from Stm
 public:
     virtual int  accept(Visitor* visitor) = 0;
     virtual ~Exp() = 0;  // Destructor puro → clase abstracta
@@ -49,6 +63,14 @@ public:
     ~NumberExp();
 };
 
+class BoolExp : public Exp { // Added BoolExp
+public:
+    bool value;
+    int accept(Visitor* visitor);
+    BoolExp(bool v);
+    ~BoolExp();
+};
+
 // Expresión numérica
 class IdExp : public Exp {
 public:
@@ -59,61 +81,61 @@ public:
 };
 
 
-class Stm{
-public:
-    virtual int accept(Visitor* visitor) = 0;
-    virtual ~Stm() = 0;
-};
-
-class VarDec{
+class VarDec : public Stm { // Inherit from Stm to allow VarDec in StmtList
 public:
     string type;
-    list<string> vars;
-    VarDec();
+    string name; // Changed from list<string> vars to single name per grammar
+    Exp* init;   // Added initializer
+    bool isConst; // Added const/val distinction
+    VarDec(string name, string type, Exp* init, bool isConst);
     int accept(Visitor* visitor);
     ~VarDec();
 };
 
-
-class Body{
+// Replaced Body with Block to match grammar
+class Block : public Stm {
 public:
-    list<Stm*> StmList;
-    list<VarDec*> declarations;
+    list<Stm*> stmts;
     int accept(Visitor* visitor);
-    Body();
-    ~Body();
+    Block();
+    ~Block();
 };
 
-
-
-
-class IfStm: public Stm {
+class IfStmt: public Stm {
 public:
     Exp* condition;
-    Body* then;
-    Body* els;
-    IfStm(Exp* condition, Body* then, Body* els);
+    Block* thenBlock;
+    Block* elseBlock; // Can be nullptr
+    IfStmt(Exp* condition, Block* thenBlock, Block* elseBlock);
     int accept(Visitor* visitor);
-    ~IfStm(){};
+    ~IfStmt(){};
 };
 
-class WhileStm: public Stm {
+class WhileStmt: public Stm {
 public:
     Exp* condition;
-    Body* b;
-    WhileStm(Exp* condition, Body* b);
+    Block* block;
+    WhileStmt(Exp* condition, Block* block);
     int accept(Visitor* visitor);
-    ~WhileStm(){};
+    ~WhileStmt(){};
 };
 
+class ForStmt: public Stm { // Added ForStmt
+public:
+    string varName;
+    Exp* rangeExp; // "in Exp"
+    Block* block;
+    ForStmt(string varName, Exp* rangeExp, Block* block);
+    int accept(Visitor* visitor);
+    ~ForStmt(){};
+};
 
-
-class AssignStm: public Stm {
+class AssignExp: public Exp { // Renamed from AssignStm and inherits Exp
 public:
     string id;
     Exp* e;
-    AssignStm(string, Exp*);
-    ~AssignStm();
+    AssignExp(string, Exp*);
+    ~AssignExp();
     int accept(Visitor* visitor);
 };
 
@@ -125,15 +147,10 @@ public:
     int accept(Visitor* visitor);
 };
 
-
-
-
-
-
 class ReturnStm: public Stm {
 public:
     Exp* e;
-    ReturnStm(){};
+    ReturnStm(Exp* e);
     ~ReturnStm(){};
     int accept(Visitor* visitor);
 };
@@ -143,22 +160,19 @@ public:
     string nombre;
     vector<Exp*> argumentos;
     int accept(Visitor* visitor);
-    FcallExp(){};
+    FcallExp(string nombre, vector<Exp*> args);
     ~FcallExp(){};
 };
-
-
-
 
 class FunDec{
 public:
     string nombre;
     string tipo;
-    Body* cuerpo;
+    Block* cuerpo;
     vector<string> Ptipos;
     vector<string> Pnombres;
     int accept(Visitor* visitor);
-    FunDec(){};
+    FunDec(string nombre, string tipo, vector<string> Ptipos, vector<string> Pnombres, Block* cuerpo);
     ~FunDec(){};
 };
 
@@ -166,11 +180,9 @@ class Program{
 public:
     list<VarDec*> vdlist;
     list<FunDec*> fdlist;
-    Program(){};
-    ~Program(){};
+    Program();
+    ~Program();
     int accept(Visitor* visitor);
 };
-
-
 
 #endif // AST_H

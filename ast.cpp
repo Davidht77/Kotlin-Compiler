@@ -3,76 +3,74 @@
 
 using namespace std;
 
-// ------------------ Exp ------------------
 Exp::~Exp() {}
+Stm::~Stm() {}
 
 string Exp::binopToChar(BinaryOp op) {
-    switch (op) {
-        case PLUS_OP:  return "+";
+    switch(op) {
+        case PLUS_OP: return "+";
         case MINUS_OP: return "-";
-        case MUL_OP:   return "*";
-        case DIV_OP:   return "/";
-        case POW_OP:   return "**";
-        case LE_OP:   return "<";
-        default:       return "?";
+        case MUL_OP: return "*";
+        case DIV_OP: return "/";
+        case POW_OP: return "^";
+        case MOD_OP: return "%";
+        case LE_OP: return "<=";
+        case LT_OP: return "<";
+        case GT_OP: return ">";
+        case GE_OP: return ">=";
+        case EQ_OP: return "==";
+        case NE_OP: return "!=";
+        case AND_OP: return "&&";
+        case OR_OP: return "||";
+        default: return "?";
     }
 }
 
-// ------------------ BinaryExp ------------------
-BinaryExp::BinaryExp(Exp* l, Exp* r, BinaryOp o)
-    : left(l), right(r), op(o) {}
+BinaryExp::BinaryExp(Exp* l, Exp* r, BinaryOp op) : left(l), right(r), op(op) {}
+BinaryExp::~BinaryExp() { delete left; delete right; }
 
-    
-BinaryExp::~BinaryExp() {
-    delete left;
-    delete right;
-}
-
-
-
-// ------------------ NumberExp ------------------
 NumberExp::NumberExp(int v) : value(v) {}
-
 NumberExp::~NumberExp() {}
 
+BoolExp::BoolExp(bool v) : value(v) {}
+BoolExp::~BoolExp() {}
 
-// ------------------idExp ------------------
 IdExp::IdExp(string v) : value(v) {}
-
 IdExp::~IdExp() {}
 
+VarDec::VarDec(string name, string type, Exp* init, bool isConst) 
+    : name(name), type(type), init(init), isConst(isConst) {}
+VarDec::~VarDec() { if(init) delete init; }
 
-Stm::~Stm(){}
-
-PrintStm::~PrintStm(){}
-
-AssignStm::~AssignStm(){}
-
-IfStm::IfStm(Exp* c, Body* t, Body* e): condition(c), then(t), els(e) {}
-
-WhileStm::WhileStm(Exp* c, Body* t): condition(c), b(t) {}
-
-
-PrintStm::PrintStm(Exp* expresion){
-    e=expresion;
+Block::Block() {}
+Block::~Block() {
+    for (Stm* s : stmts) delete s;
 }
 
-AssignStm::AssignStm(string variable,Exp* expresion){
-    id = variable;
-    e = expresion;
+IfStmt::IfStmt(Exp* condition, Block* thenBlock, Block* elseBlock) 
+    : condition(condition), thenBlock(thenBlock), elseBlock(elseBlock) {}
+
+WhileStmt::WhileStmt(Exp* condition, Block* block) 
+    : condition(condition), block(block) {}
+
+ForStmt::ForStmt(string varName, Exp* rangeExp, Block* block)
+    : varName(varName), rangeExp(rangeExp), block(block) {}
+
+AssignExp::AssignExp(string id, Exp* e) : id(id), e(e) {}
+AssignExp::~AssignExp() { delete e; }
+
+PrintStm::PrintStm(Exp* e) : e(e) {}
+PrintStm::~PrintStm() { delete e; }
+
+ReturnStm::ReturnStm(Exp* e) : e(e) {}
+
+FcallExp::FcallExp(string nombre, vector<Exp*> args) : nombre(nombre), argumentos(args) {}
+
+FunDec::FunDec(string nombre, string tipo, vector<string> Ptipos, vector<string> Pnombres, Block* cuerpo)
+    : nombre(nombre), tipo(tipo), Ptipos(Ptipos), Pnombres(Pnombres), cuerpo(cuerpo) {}
+
+Program::Program() {}
+Program::~Program() {
+    for (VarDec* v : vdlist) delete v;
+    for (FunDec* f : fdlist) delete f;
 }
-
-
-
-VarDec::VarDec() {}
-
-VarDec::~VarDec() {}
-
-Body::Body(){
-    declarations=list<VarDec*>();
-    StmList=list<Stm*>();
-}
-
-Body::~Body(){}
-
-

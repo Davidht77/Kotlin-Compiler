@@ -40,16 +40,11 @@ ostream& operator<<(ostream& outs, const Token& tok) {
         case Token::ASSIGN:    outs << "TOKEN(ASSIGN, \""    << tok.text << "\")"; break;
         case Token::IF:    outs << "TOKEN(IF, \""    << tok.text << "\")"; break;
         case Token::WHILE:    outs << "TOKEN(WHILE, \""    << tok.text << "\")"; break;
-        case Token::THEN:    outs << "TOKEN(THEN, \""    << tok.text << "\")"; break;
-        case Token::DO:    outs << "TOKEN(DO, \""    << tok.text << "\")"; break;
-        case Token::ENDIF:    outs << "TOKEN(ENDIF, \""    << tok.text << "\")"; break;
-        case Token::ENDWHILE:    outs << "TOKEN(ENDWHILE, \""    << tok.text << "\")"; break;
         case Token::ELSE:    outs << "TOKEN(ELSE, \""    << tok.text << "\")"; break;
         case Token::VAR:    outs << "TOKEN(VAR, \""    << tok.text << "\")"; break;
         case Token::COMA:    outs << "TOKEN(COMA, \""    << tok.text << "\")"; break;
 
         case Token::FUN:    outs << "TOKEN(FUN, \""    << tok.text << "\")"; break;
-        case Token::ENDFUN:    outs << "TOKEN(ENDFUN, \""    << tok.text << "\")"; break;
         case Token::RETURN:    outs << "TOKEN(RETURN, \""    << tok.text << "\")"; break;
 
         case Token::GE:    outs << "TOKEN(GE, \""    << tok.text << "\")"; break;
@@ -71,7 +66,6 @@ ostream& operator<<(ostream& outs, const Token& tok) {
         case Token::CONJ:    outs << "TOKEN(CONJ, \""    << tok.text << "\")"; break;
         case Token::DISJ:    outs << "TOKEN(DISJ, \""    << tok.text << "\")"; break;
         case Token::NOT:    outs << "TOKEN(NOT, \""    << tok.text << "\")"; break;
-    
 
         case Token::END:    outs << "TOKEN(END)"; break;
     }

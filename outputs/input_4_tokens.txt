@@ -1,7 +1,7 @@
 Scanner
 
-TOKEN(ID, "const")
-TOKEN(ID, "val")
+
+
 TOKEN(ID, "MAX")
 TOKEN(ASSIGN, "=")
 TOKEN(NUM, "10")
@@ -22,8 +22,7 @@ TOKEN(LKEY, "{")
 TOKEN(IF, "if")
 TOKEN(LPAREN, "(")
 TOKEN(ID, "n")
-TOKEN(LE, "<")
-TOKEN(ASSIGN, "=")
+TOKEN(LE, "<=")
 TOKEN(NUM, "1")
 TOKEN(RPAREN, ")")
 TOKEN(LKEY, "{")
@@ -45,7 +44,7 @@ TOKEN(ID, "main")
 TOKEN(LPAREN, "(")
 TOKEN(RPAREN, ")")
 TOKEN(LKEY, "{")
-TOKEN(ID, "val")
+
 TOKEN(ID, "result")
 TOKEN(ASSIGN, "=")
 TOKEN(ID, "factorial")
@@ -59,7 +58,7 @@ TOKEN(RPAREN, ")")
 
 TOKEN(LPAREN, "(")
 TOKEN(ID, "i")
-TOKEN(ID, "in")
+
 TOKEN(NUM, "1")
 TOKEN(ERR, ".")
 Caracter invalido

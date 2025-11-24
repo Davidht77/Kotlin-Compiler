@@ -31,7 +31,6 @@ public:
         LT,      // <
         GT,      // >
         FUN,     // fun
-        ENDFUN,  // endfun
         RETURN,  // return
         SEMICOL, // ;
         COLON,   // :
@@ -41,14 +40,12 @@ public:
         IF,      // if
         WHILE,   // while
         FOR,     // for
-        DO,      // do
-        THEN,    // then
-        ENDIF,   // endif
-        ENDFOR,  // endfor
-        ENDWHILE, // endwhile
+        IN,      // in
         ELSE,    // else
         END,      // Fin de entrada
         VAR,     // var
+        VAL,     // val
+        CONST,   // const
         COMA,    // ,
         TRUE,    // true
         FALSE,   // false
