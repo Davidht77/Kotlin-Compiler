@@ -35,6 +35,10 @@ NumberExp::~NumberExp() {}
 BoolExp::BoolExp(bool v) : value(v) {}
 BoolExp::~BoolExp() {}
 
+// Implementación de StringExp << NUEVO >>
+StringExp::StringExp(string v) : value(v) {}
+StringExp::~StringExp() {}
+
 IdExp::IdExp(string v) : value(v) {}
 IdExp::~IdExp() {}
 

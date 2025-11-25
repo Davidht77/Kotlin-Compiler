@@ -42,7 +42,7 @@ public:
         FOR,     // for
         IN,      // in
         ELSE,    // else
-        END,      // Fin de entrada
+        END,     // Fin de entrada
         VAR,     // var
         VAL,     // val
         CONST,   // const
@@ -51,6 +51,7 @@ public:
         FALSE,   // false
         DQM,     // "
         SQM,     // '
+        STRING_LIT, // <--- NUEVO: Literal de cadena (e.g., "Hola")
         CONJ,    // &&
         DISJ,    // ||
         NOT,     // !

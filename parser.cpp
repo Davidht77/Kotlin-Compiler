@@ -90,9 +90,6 @@ VarDec* Parser::parseVarDec() {
     }
     
     if (match(Token::VAL)) {
-        // val implies const usually, but grammar has separate const.
-        // Let's say val is immutable by default, var is mutable.
-        // If const is present, it's definitely const.
         if (!isConst) isConst = true; 
     } else if (match(Token::VAR)) {
         // var is mutable
@@ -137,26 +134,47 @@ FunDec* Parser::parseFunDec() {
     // ParamListOpt ::= (ParamDec ("," ParamDec)*) | ε
     // ParamDec ::= VarSymbol id TypeAnnotationOpt
     if (!check(Token::RPAREN)) {
+        // Leer el primer parámetro
+        // VarSymbol
+        bool paramConst = false;
+        if (match(Token::CONST)) paramConst = true;
+        if (match(Token::VAL)) { /* val */ }
+        else if (match(Token::VAR)) { /* var */ }
+        else {
+            throw runtime_error("Expected 'val' or 'var' in parameter");
+        }
+        
+        if (!match(Token::ID)) throw runtime_error("Expected parameter name");
+        pNames.push_back(previous->text);
+        
+        string pType = "";
+        if (match(Token::COLON)) {
+            if (!match(Token::ID)) throw runtime_error("Expected parameter type");
+            pType = previous->text;
+        }
+        pTypes.push_back(pType);
+
+        // Leer los parámetros restantes
         while (match(Token::COMA)){
-             // VarSymbol
-             bool paramConst = false;
-             if (match(Token::CONST)) paramConst = true;
-             if (match(Token::VAL)) { /* val */ }
-             else if (match(Token::VAR)) { /* var */ }
-             else {
+            // VarSymbol
+            paramConst = false;
+            if (match(Token::CONST)) paramConst = true;
+            if (match(Token::VAL)) { /* val */ }
+            else if (match(Token::VAR)) { /* var */ }
+            else {
                 throw runtime_error("Expected 'val' or 'var' in parameter");
-             }
-             
-             if (!match(Token::ID)) throw runtime_error("Expected parameter name");
-             pNames.push_back(previous->text);
-             
-             string pType = "";
-             if (match(Token::COLON)) {
-                 if (!match(Token::ID)) throw runtime_error("Expected parameter type");
-                 pType = previous->text;
-             }
-             pTypes.push_back(pType);
-             
+            }
+            
+            if (!match(Token::ID)) throw runtime_error("Expected parameter name");
+            pNames.push_back(previous->text);
+            
+            pType = "";
+            if (match(Token::COLON)) {
+                if (!match(Token::ID)) throw runtime_error("Expected parameter type");
+                pType = previous->text;
+            }
+            pTypes.push_back(pType);
+            
         }
     }
     
@@ -179,12 +197,10 @@ Block* Parser::parseBlock() {
     Block* b = new Block();
     
     // StmtListOpt ::= StmtList | ε
-    // StmtList ::= (Stmt StmtTerminator)*
-    // Stmt ::= VarDec | Exp | PrintStmt | IfStmt | WhileStmt | ForStmt | ReturnStmt
-    
+    // StmtList ::= (Stmt)*
     while (!check(Token::RKEY) && !isAtEnd()) {
         b->stmts.push_back(parseStmt());
-     }
+       }
     match(Token::RKEY);
     return b;
 }
@@ -196,6 +212,7 @@ Stm* Parser::parseStmt() {
         s = parseVarDec();
     }
     else if (match(Token::PRINT) || match(Token::PRINTLN)) {
+        // match(Token::PRINT) or match(Token::PRINTLN) already consumed the token
         match(Token::LPAREN);
         Exp* e = nullptr;
         if (!check(Token::RPAREN)) {
@@ -243,8 +260,9 @@ Stm* Parser::parseStmt() {
         s = new ReturnStm(e);
     }
     else {
-        // Exp
+        // Exp (Assignment or other expression)
         Exp* e = parseExp();
+        if (!e) throw runtime_error("Expected statement or expression");
         match(Token::SEMICOL);
         s = e; // Exp inherits Stm now
     }
@@ -252,30 +270,36 @@ Stm* Parser::parseStmt() {
     return s;
 }
 
+// En parser.cpp:
+
 // Exp ::= Assignment
 Exp* Parser::parseExp() {
-    if (check(Token::ID)) {
-        Token* savedId = current;
-        advance();
-        if (match(Token::ASSIGN)) {
-            string name = savedId->text;
-            Exp* val = parseExp(); // Right recursive Assignment
-            return new AssignExp(name, val); // Returns Exp*
-        } else {
-            Exp* l = parseLogicOr();
-            if (match(Token::ASSIGN)) {
-                // Check if l is lvalue (IdExp)
-                IdExp* idExp = dynamic_cast<IdExp*>(l);
-                if (!idExp) throw runtime_error("Invalid assignment target");
-                string name = idExp->value;
-                delete l; // Replace IdExp with AssignExp
-                Exp* r = parseExp();
-                return new AssignExp(name, r); // Returns Exp*
-            }
-            return l;
+    // 1. Parsea la expresión con la siguiente precedencia (LogicOr).
+    // Esto intentará parsear 'a + b' primero.
+    Exp* l = parseLogicOr();
+    
+    // 2. Verifica si la expresión fue seguida por el operador de asignación.
+    if (match(Token::ASSIGN)) {
+        
+        // 3. Verifica si el lado izquierdo (l) es un IdExp válido para la asignación (l-value).
+        IdExp* idExp = dynamic_cast<IdExp*>(l);
+        
+        if (!idExp) {
+            // Error sintáctico/semántico: no se puede asignar a algo que no sea un ID.
+            throw runtime_error("Invalid assignment target: Left side must be an ID.");
         }
+        
+        string name = idExp->value;
+        delete l; // Reemplazamos el IdExp por un AssignExp
+        
+        // Llamada recursiva para el lado derecho (soporte para asignación en cascada)
+        Exp* r = parseExp(); 
+        
+        return new AssignExp(name, r); 
     }
-    return parseLogicOr();
+    
+    // 4. Si no hay operador de asignación, devuelve la expresión LogicOr.
+    return l;
 }
 
 // LogicOr ::= LogicAnd ("||" LogicAnd)*
@@ -359,19 +383,26 @@ Exp* Parser::parseUnary() {
         return parseUnary(); // Unary + is no-op
     } else if (match(Token::MINUS)) {
         Exp* e = parseUnary();
-        return new BinaryExp(new NumberExp(0), e, MINUS_OP); // 0 - e
+        // Generar 0 - e como una BinaryExp
+        return new BinaryExp(new NumberExp(0), e, MINUS_OP); 
     } else if (match(Token::NOT)) {
         Exp* e = parseUnary();
-        return new BinaryExp(e, new BoolExp(false), EQ_OP);
+        // Generar e == false como una BinaryExp
+        return new BinaryExp(e, new BoolExp(false), EQ_OP); 
     }
     return parsePrimary();
 }
 
-// Primary ::= id | Num | Bool | "(" Exp ")" | FunctionCall
+// Primary ::= id | Num | Bool | String | "(" Exp ")" | FunctionCall
 Exp* Parser::parsePrimary() {
     if (match(Token::NUM)) {
         return new NumberExp(stoi(previous->text));
     }
+    // << NUEVO: Reconocimiento de String Literal >>
+    else if (match(Token::STRING_LIT)) { 
+        return new StringExp(previous->text);
+    }
+    // << FIN NUEVO >>
     else if (match(Token::TRUE)) {
         return new BoolExp(true);
     }
@@ -394,7 +425,7 @@ Exp* Parser::parsePrimary() {
                     args.push_back(parseExp());
                 } while (match(Token::COMA));
             }
-            match(Token::RPAREN);
+            if (!match(Token::RPAREN)) throw runtime_error("Expected ')' after function arguments");
             return new FcallExp(name, args);
         } else {
             return new IdExp(name);

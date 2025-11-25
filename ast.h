@@ -71,7 +71,16 @@ public:
     ~BoolExp();
 };
 
-// Expresión numérica
+// Expresión de cadena de texto (String Literal) << NUEVO >>
+class StringExp : public Exp {
+public:
+    string value;
+    int accept(Visitor* visitor);
+    StringExp(string v);
+    ~StringExp();
+};
+
+// Expresión ID
 class IdExp : public Exp {
 public:
     string value;

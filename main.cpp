@@ -32,22 +32,31 @@ int main(int argc, const char* argv[]) {
 
     // Crear instancias de Scanner 
     Scanner scanner1(input.c_str());
+    //ejecutar_scanner(&scanner1, argv[1]);
+    cout << "Scanner exitoso" << endl;
 
     // Crear instancias de Parser
     Parser parser(&scanner1);
-
+    cout << "Creacion parser exitoso" << endl;
     // Parsear y generar AST
   
     Program* program = parser.parseProgram();     
+        cout << "PASS" << endl;
         string inputFile(argv[1]);
+        cout << "PASS" << endl;
         size_t dotPos = inputFile.find_last_of('.');
+        cout << "PASS" << endl;
         string baseName = (dotPos == string::npos) ? inputFile : inputFile.substr(0, dotPos);
+        cout << "PASS" << endl;
         string outputFilename = baseName + ".s";
+        cout << "PASS" << endl;
         ofstream outfile(outputFilename);
+        cout << "PASS" << endl;
         if (!outfile.is_open()) {
             cerr << "Error al crear el archivo de salida: " << outputFilename << endl;
             return 1;
         }
+    cout << "Parseo exitoso" << endl;
 
     cout << "Generando codigo ensamblador en " << outputFilename << endl;
     GenCodeVisitor codigo(outfile);
