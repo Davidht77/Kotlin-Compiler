@@ -17,15 +17,18 @@ enum BinaryOp {
     MUL_OP, 
     DIV_OP,
     POW_OP,
-    MOD_OP, // Added MOD
+    MOD_OP,
     LE_OP,
-    LT_OP,  // Added LT
-    GT_OP,  // Added GT
-    GE_OP,  // Added GE
-    EQ_OP,  // Added EQ
-    NE_OP,  // Added NE
-    AND_OP, // Added AND
-    OR_OP   // Added OR
+    LT_OP,
+    GT_OP,
+    GE_OP,
+    EQ_OP,
+    NE_OP,
+    AND_OP,
+    OR_OP,
+    RANGE_OP,
+    DOWNTO_OP,
+    STEP_OP
 };
 
 class Stm{
@@ -63,7 +66,7 @@ public:
     ~NumberExp();
 };
 
-class BoolExp : public Exp { // Added BoolExp
+class BoolExp : public Exp {
 public:
     bool value;
     int accept(Visitor* visitor);
@@ -71,7 +74,7 @@ public:
     ~BoolExp();
 };
 
-// Expresión de cadena de texto (String Literal) << NUEVO >>
+// Expresión de cadena de texto (String Literal)
 class StringExp : public Exp {
 public:
     string value;
@@ -93,9 +96,9 @@ public:
 class VarDec : public Stm { // Inherit from Stm to allow VarDec in StmtList
 public:
     string type;
-    string name; // Changed from list<string> vars to single name per grammar
-    Exp* init;   // Added initializer
-    bool isConst; // Added const/val distinction
+    string name; 
+    Exp* init;   
+    bool isConst; 
     VarDec(string name, string type, Exp* init, bool isConst);
     int accept(Visitor* visitor);
     ~VarDec();
@@ -129,7 +132,7 @@ public:
     ~WhileStmt(){};
 };
 
-class ForStmt: public Stm { // Added ForStmt
+class ForStmt: public Stm { 
 public:
     string varName;
     Exp* rangeExp; // "in Exp"

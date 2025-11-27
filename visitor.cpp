@@ -22,11 +22,9 @@ int BoolExp::accept(Visitor* visitor) {
     return visitor->visit(this);
 }
 
-// *** CORRECCIÓN: Método accept para StringExp (Necesario para dynamic_cast) ***
 int StringExp::accept(Visitor* visitor) {
     return visitor->visit(this);
 }
-// ******************************************************************************
 
 int Program::accept(Visitor* visitor) {
     return visitor->visit(this);
@@ -35,7 +33,6 @@ int Program::accept(Visitor* visitor) {
 int IdExp::accept(Visitor* visitor) {
     return visitor->visit(this);
 }
-
 
 int PrintStm::accept(Visitor* visitor) {
     return visitor->visit(this);
@@ -89,7 +86,6 @@ int GenCodeVisitor::generar(Program* program) {
     return 0;
 }
 
-// MODIFICADO: Añade formatos de string y la definición de las literales
 int GenCodeVisitor::visit(Program* program) {
     // 1. Sección de datos
     out << ".data\n";
@@ -118,22 +114,14 @@ int GenCodeVisitor::visit(Program* program) {
         BoolExp* boolExp = dynamic_cast<BoolExp*>(dec->init);
         
         if (numExp) {
-            // Ejemplo: var a: Int = 5; -> a: .quad 5
             out << numExp->value << endl;
         } else if (boolExp) {
-            // Ejemplo: var b: Bool = true; -> b: .quad 1
             out << (boolExp->value ? 1 : 0) << endl;
         } else {
-            // Default a 0 para StringExp o Expresiones más complejas
             out << "0" << endl; 
         }
     }
     
-    // B. Imprimir las literales de cadena recolectadas
-    for (auto& pair : stringLiterals) {
-        out << pair.second << ": .string \"" << pair.first << "\""<<endl;
-    }
-
     // 2. Sección de código
     out << ".text\n";
     out << ".global main\n";
@@ -153,22 +141,23 @@ int GenCodeVisitor::visit(Program* program) {
         dec->accept(this);
     }
 
+    // B. Imprimir las literales de cadena recolectadas (al final para incluir las de funciones)
+    if (!stringLiterals.empty()) {
+        out << ".data\n";
+        for (auto& pair : stringLiterals) {
+            out << pair.second << ": .string \"" << pair.first << "\""<<endl;
+        }
+    }
+
     out << ".section .note.GNU-stack,\"\",@progbits"<<endl;
     return 0;
 }
-
-// MODIFICADO: Manejo de registro de strings globales
-// En visitor.cpp
 
 int GenCodeVisitor::visit(VarDec* stm) {
     string var = stm->name;
     
     if (!entornoFuncion) {
-        // Entorno Global: La inicialización ya es estática (en Program::visit).
-        // Solo mantenemos la lógica de registro por seguridad (aunque ya debe estar en Program::visit).
         memoriaGlobal[var] = true;
-        
-        // Manejar StringExp para registrar la literal (mantenido por seguridad)
         if (stm->init) {
             StringExp* stringExp = dynamic_cast<StringExp*>(stm->init);
             if (stringExp) {
@@ -178,16 +167,13 @@ int GenCodeVisitor::visit(VarDec* stm) {
                 }
             }
         }
-        
-        return 0; // <<--- CORRECCIÓN CLAVE: NO GENERAR CÓDIGO EJECUTABLE AQUÍ
-        
-    } else { // Entorno Local (dentro de una función)
+        return 0; 
+    } else { 
         memoria[var] = offset;
         offset -= 8;
         
-        // Handle initializer if present (Asignación dinámica para LOCALES)
         if (stm->init) {
-            stm->init->accept(this); // Evalúa la expresión en %rax
+            stm->init->accept(this); 
             out << " movq %rax, " << memoria[var] << "(%rbp)"<<endl;
         }
     }
@@ -205,19 +191,14 @@ int GenCodeVisitor::visit(BoolExp* exp) {
     return 0;
 }
 
-// NUEVO: Visitar StringExp
 int GenCodeVisitor::visit(StringExp* exp) {
     string label;
-    
-    // 1. Reutilizar etiqueta o crear una nueva
     if (stringLiterals.count(exp->value)) {
         label = stringLiterals[exp->value];
     } else {
         label = "str_" + to_string(stringCont++);
         stringLiterals[exp->value] = label;
     }
-    
-    // 2. Cargar la dirección de la literal de cadena en %rax
     out << " leaq " << label << "(%rip), %rax\n"; 
     return 0;
 }
@@ -299,21 +280,17 @@ int GenCodeVisitor::visit(AssignExp* stm) {
     return 0;
 }
 
-// MODIFICADO: Soporte para impresión de números y cadenas
 int GenCodeVisitor::visit(PrintStm* stm) {
-    stm->e->accept(this); // Evalúa la expresión -> resultado en %rax
+    stm->e->accept(this); 
 
-    // Determinar si la expresión es una literal de cadena (Requiere dynamic_cast)
     StringExp* stringExp = dynamic_cast<StringExp*>(stm->e); 
 
     if (stringExp) {
-        // Caso 1: Cadena. %rax contiene la dirección (leaq).
-        out << " movq %rax, %rsi\n"; // Dirección de la cadena a RSI
-        out << " leaq print_fmt_str(%rip), %rdi\n"; // Formato de string a RDI
+        out << " movq %rax, %rsi\n"; 
+        out << " leaq print_fmt_str(%rip), %rdi\n"; 
     } else {
-        // Caso 2: Número/Booleano/ID/Binario. %rax contiene el valor.
-        out << " movq %rax, %rsi\n"; // Valor a RSI
-        out << " leaq print_fmt_num(%rip), %rdi\n"; // Formato de número a RDI
+        out << " movq %rax, %rsi\n"; 
+        out << " leaq print_fmt_num(%rip), %rdi\n"; 
     }
     
     out << " movl $0, %eax\n"
@@ -355,16 +332,92 @@ int GenCodeVisitor::visit(WhileStmt* stm) {
 }
 
 int GenCodeVisitor::visit(ForStmt* stm) {
-    // Implementación es solo un placeholder
-    out << " # WARNING: ForStmt no implementado\n";
+    int label = labelcont++;
+    int saved_offset = offset;
+    
+    Exp* range = stm->rangeExp;
+    Exp* start = nullptr;
+    Exp* end = nullptr;
+    Exp* step = nullptr;
+    bool isDownTo = false;
+    
+    BinaryExp* stepExp = dynamic_cast<BinaryExp*>(range);
+    if (stepExp && stepExp->op == STEP_OP) {
+        step = stepExp->right;
+        range = stepExp->left; 
+    }
+    
+    BinaryExp* rangeBin = dynamic_cast<BinaryExp*>(range);
+    if (rangeBin) {
+        if (rangeBin->op == RANGE_OP) {
+            start = rangeBin->left;
+            end = rangeBin->right;
+            isDownTo = false;
+        } else if (rangeBin->op == DOWNTO_OP) {
+            start = rangeBin->left;
+            end = rangeBin->right;
+            isDownTo = true;
+        }
+    }
+    
+    if (!start || !end) {
+        start = new NumberExp(0); 
+    }
+
+    start->accept(this);
+    int start_offset = offset;
+    offset -= 8;
+    out << " movq %rax, " << start_offset << "(%rbp)\n";
+    
+    end->accept(this);
+    int end_offset = offset;
+    offset -= 8;
+    out << " movq %rax, " << end_offset << "(%rbp)\n";
+    
+    int step_offset = offset;
+    offset -= 8;
+    if (step) {
+        step->accept(this);
+    } else {
+        out << " movq $1, %rax\n";
+    }
+    out << " movq %rax, " << step_offset << "(%rbp)\n";
+
+    string var = stm->varName;
+    memoria[var] = offset;
+    offset -= 8;
+    
+    out << " movq " << start_offset << "(%rbp), %rax\n";
+    out << " movq %rax, " << memoria[var] << "(%rbp)\n";
+    
+    out << "loop_" << label << ":\n";
+    
+    out << " movq " << memoria[var] << "(%rbp), %rax\n"; 
+    out << " movq " << end_offset << "(%rbp), %rcx\n";   
+    out << " cmpq %rcx, %rax\n"; 
+    
+    if (isDownTo) {
+        out << " jl endloop_" << label << "\n"; 
+    } else {
+        out << " jg endloop_" << label << "\n";
+    }
+    
     stm->block->accept(this);
-    return 0;
-}
-
-
-int GenCodeVisitor::visit(ReturnStm* stm) {
-    if (stm->e) stm->e->accept(this); // Deja el valor de retorno en %rax
-    out << " jmp .end_"<<nombreFuncion << endl;
+    
+    out << " movq " << memoria[var] << "(%rbp), %rax\n";
+    out << " movq " << step_offset << "(%rbp), %rcx\n";
+    if (isDownTo) {
+        out << " subq %rcx, %rax\n"; 
+    } else {
+        out << " addq %rcx, %rax\n"; 
+    }
+    out << " movq %rax, " << memoria[var] << "(%rbp)\n";
+    
+    out << " jmp loop_" << label << "\n";
+    
+    out << "endloop_" << label << ":\n";
+    
+    offset = saved_offset;
     return 0;
 }
 
@@ -383,10 +436,8 @@ int GenCodeVisitor::visit(FunDec* f) {
     for (int i = 0; i < size; i++) {
         memoria[f->Pnombres[i]]=offset;
         if (i < argRegs.size()) {
-            // Parámetros en registros (hasta 6)
             out << " movq " << argRegs[i] << "," << offset << "(%rbp)" << endl;
         } else {
-            // Parámetros en la pila (offset a RBP+16, RBP+24, ...)
             int arg_stack_pos = 16 + (i - (int)argRegs.size()) * 8; 
             out << " movq " << arg_stack_pos << "(%rbp), %rax\n";
             out << " movq %rax, " << offset << "(%rbp)" << endl;
@@ -394,8 +445,6 @@ int GenCodeVisitor::visit(FunDec* f) {
         offset -= 8;
     }
     
-    // Reserva de espacio. 
-    // Nota: Esta reserva es estática y simple. En un compilador real se calcularía el tamaño exacto.
     int reserva = 128; 
     out << " subq $" << reserva << ", %rsp" << endl;
     
@@ -408,32 +457,36 @@ int GenCodeVisitor::visit(FunDec* f) {
     return 0;
 }
 
+int GenCodeVisitor::visit(ReturnStm* stm) {
+    if (stm->e) {
+        stm->e->accept(this); 
+    }
+    out << " leave\n";
+    out << " ret\n";
+    return 0;
+}
+
 int GenCodeVisitor::visit(FcallExp* exp) {
     vector<std::string> argRegs = {"%rdi", "%rsi", "%rdx", "%rcx", "%r8", "%r9"};
     int size = exp->argumentos.size();
     
-    // Argumentos > 6: pasar por pila en orden inverso
     int num_stack_args = max(0, size - (int)argRegs.size());
     for (int i = size - 1; i >= (int)argRegs.size(); i--) {
         exp->argumentos[i]->accept(this);
         out << " pushq %rax\n";
     }
 
-    // Argumentos <= 6: pasar por registro
     for (int i = 0; i < min(size, (int)argRegs.size()); i++) {
         exp->argumentos[i]->accept(this);
         out << " mov %rax, " << argRegs[i] <<endl;
     }
 
-    // Llamada a función
-    out << " movl $0, %eax\n"; // Número de registros vectoriales (0)
+    out << " movl $0, %eax\n"; 
     out << "call " << exp->nombre << endl;
 
-    // Limpiar argumentos de la pila (si hubo)
     if (num_stack_args > 0) {
         out << " addq $" << num_stack_args * 8 << ", %rsp\n";
     }
     
-    // Resultado en %rax
     return 0;
 }

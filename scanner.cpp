@@ -71,6 +71,8 @@ Token* Scanner::nextToken() {
         else if (lexema=="false") return new Token(Token::FALSE, input, first, current - first);
         else if (lexema=="fun") return new Token(Token::FUN, input, first, current - first);
         else if (lexema=="return") return new Token(Token::RETURN, input, first, current - first);
+        else if (lexema=="downTo") return new Token(Token::DOWNTO, input, first, current - first);
+        else if (lexema=="step") return new Token(Token::STEP, input, first, current - first);
 
         else return new Token(Token::ID, input, first, current - first);
     }
@@ -100,7 +102,7 @@ Token* Scanner::nextToken() {
     }
     
     // 6. Operadores y delimitadores (Múltiples o simples)
-    else if (strchr("+/-*();=<>,{}:%\'\"!&|", c)) {
+    else if (strchr("+/-*();=<>,{}:%\'\"!&|.", c)) {
         
         switch (c) {
             case '<': 
@@ -178,13 +180,22 @@ Token* Scanner::nextToken() {
             case ';': current++; token = new Token(Token::SEMICOL,c); break;
             case ',': current++; token = new Token(Token::COMA,c); break;
             case ':': current++; token = new Token(Token::COLON,c); break;
+            case '.': 
+                if (current + 1 < input.length() && input[current+1] == '.') {
+                    current+=2; // ..
+                    token = new Token(Token::RANGE, input, first, current - first);
+                } else {
+                    current++; // .
+                    token = new Token(Token::DOT,c); 
+                }
+                break;
             
             case '"': 
                 // Ya se manejó arriba en el paso 5. Si llega aquí es redundante.
                 // Lo dejamos para evitar warnings, pero el flujo correcto nunca llega aquí.
                 current++;
                 token = new Token(Token::DQM,c); 
-                break; 
+                break;
             case '\'': 
                 current++;
                 token = new Token(Token::SQM,c); 

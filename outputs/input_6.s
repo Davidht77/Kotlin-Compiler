@@ -2,7 +2,8 @@
 print_fmt_num: .string "%ld \n"
 print_fmt_str: .string "%s\n"
 x: .quad 10
-y: .quad 5
+y: .quad 20
+z: .quad 30
 .text
 .global main
 .globl add
@@ -40,84 +41,54 @@ call add
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax
  call printf@PLT
- movq $0, %rax
- movq %rax, -16(%rbp)
-while_0:
- movq -16(%rbp), %rax
+ movq -8(%rbp), %rax
  pushq %rax
- movq $5, %rax
- movq %rax, %rcx
- popq %rax
- cmpq %rcx, %rax
- movl $0, %eax
- setl %al
- movzbq %al, %rax
- cmpq $0, %rax
- je endwhile_0
- movq -16(%rbp), %rax
- pushq %rax
- movq $2, %rax
- movq %rax, %rcx
- popq %rax
- cqo
- idivq %rcx
- movq %rdx, %rax
- pushq %rax
- movq $0, %rax
- movq %rax, %rcx
- popq %rax
- cmpq %rcx, %rax
- movl $0, %eax
- sete %al
- movzbq %al, %rax
- cmpq $0, %rax
- je else_1
- movq -16(%rbp), %rax
- movq %rax, %rsi
- leaq print_fmt_num(%rip), %rdi
- movl $0, %eax
- call printf@PLT
- jmp endif_1
-else_1:
-endif_1:
- movq -16(%rbp), %rax
- pushq %rax
- movq $1, %rax
- movq %rax, %rcx
- popq %rax
- addq %rcx, %rax
- movq %rax, -16(%rbp)
- jmp while_0
-endwhile_0:
- movq x(%rip), %rax
- pushq %rax
- movq y(%rip), %rax
+ movq $20, %rax
  movq %rax, %rcx
  popq %rax
  cmpq %rcx, %rax
  movl $0, %eax
  setg %al
  movzbq %al, %rax
- pushq %rax
- movq -8(%rbp), %rax
+ cmpq $0, %rax
+ je else_0
+ movq $1, %rax
+ movq %rax, %rsi
+ leaq print_fmt_num(%rip), %rdi
+ movl $0, %eax
+ call printf@PLT
+ jmp endif_0
+else_0:
+ movq $0, %rax
+ movq %rax, %rsi
+ leaq print_fmt_num(%rip), %rdi
+ movl $0, %eax
+ call printf@PLT
+endif_0:
+while_1:
+ movq x(%rip), %rax
  pushq %rax
  movq $0, %rax
  movq %rax, %rcx
  popq %rax
  cmpq %rcx, %rax
  movl $0, %eax
- setne %al
+ setg %al
  movzbq %al, %rax
+ cmpq $0, %rax
+ je endwhile_1
+ movq x(%rip), %rax
+ pushq %rax
+ movq $1, %rax
  movq %rax, %rcx
  popq %rax
- andq %rcx, %rax
- movq %rax, -24(%rbp)
- movq -24(%rbp), %rax
+ subq %rcx, %rax
+ movq %rax, x(%rip)
+ movq x(%rip), %rax
  movq %rax, %rsi
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax
  call printf@PLT
-.end_main:
-leave
-ret
-.section .note.GNU-stack,"",@progbits
+ jmp while_1
+endwhile_1:
+ movq $0, %rax

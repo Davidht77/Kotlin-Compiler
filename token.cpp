@@ -71,6 +71,7 @@ ostream& operator<<(ostream& outs, const Token& tok) {
         case Token::CONST:  outs << "TOKEN(CONST, \""  << tok.text << "\")"; break;
         case Token::FOR:    outs << "TOKEN(FOR, \""    << tok.text << "\")"; break;
         case Token::IN:     outs << "TOKEN(IN, \""     << tok.text << "\")"; break;
+        case Token::DOT:    outs << "TOKEN(DOT, \""    << tok.text << "\")"; break;
 
 
         case Token::END:    outs << "TOKEN(END)"; break;

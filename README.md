@@ -10,11 +10,13 @@ FunDec          ::= "fun" id "(" ParamListOpt ")" TypeAnnotationOpt Block
 
 ParamListOpt    ::= (ParamDec ("," ParamDec)*) | ε
 
-ParamDec        ::= VarSymbol id TypeAnnotationOpt
+ParamDec        ::= VarSymbolParam id TypeAnnotationOpt
 
 VarDec          ::= VarSymbol id TypeAnnotationOpt InitializerOpt StmtTerminator
 
 VarSymbol       ::= ("const" | ε) ("val" | "var")
+
+VarSymbolParam  ::= ("const" | ε) ("val" | "var" | ε)
 
 TypeAnnotationOpt ::= ":" Type | ε
 

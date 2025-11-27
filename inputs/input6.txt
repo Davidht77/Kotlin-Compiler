@@ -18,6 +18,7 @@ fun main() {
     
     while (x > 0) {
         x = x - 1;
+        println(x);
     }
     
     for (i in 0) {

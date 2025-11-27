@@ -26,10 +26,11 @@ public:
     Exp* parseLogicAnd();   // &&
     Exp* parseEquality();   // ==, !=
     Exp* parseRelational(); // <, >, <=, >=
+    Exp* parseRange();      // .., downTo, step
     Exp* parseAdditive();   // +, -
     Exp* parseMultiplicative(); // *, /, %
     Exp* parseUnary();      // +, -, !
     Exp* parsePrimary();    // id, num, bool, (), call
 };
 
-#endif // PARSER_H      
+#endif // PARSER_H

@@ -34,6 +34,7 @@ public:
         RETURN,  // return
         SEMICOL, // ;
         COLON,   // :
+        DOT,    // .
         ASSIGN,  // =
         PRINT,   // print
         PRINTLN, // println
@@ -51,10 +52,13 @@ public:
         FALSE,   // false
         DQM,     // "
         SQM,     // '
-        STRING_LIT, // <--- NUEVO: Literal de cadena (e.g., "Hola")
+        STRING_LIT, // "Hola"
         CONJ,    // &&
         DISJ,    // ||
         NOT,     // !
+        RANGE,   // ..
+        DOWNTO,  // downTo
+        STEP     // step
     };
 
     // Atributos

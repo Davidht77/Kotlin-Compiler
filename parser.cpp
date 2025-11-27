@@ -114,7 +114,7 @@ VarDec* Parser::parseVarDec() {
     }
     
     // StmtTerminator ::= ";" | Newline (we use SEMICOL)
-    if (!match(Token::SEMICOL)) throw runtime_error("Expected ';'");
+    match(Token::SEMICOL);
     
     return new VarDec(name, type, init, isConst);
 }
@@ -140,9 +140,7 @@ FunDec* Parser::parseFunDec() {
         if (match(Token::CONST)) paramConst = true;
         if (match(Token::VAL)) { /* val */ }
         else if (match(Token::VAR)) { /* var */ }
-        else {
-            throw runtime_error("Expected 'val' or 'var' in parameter");
-        }
+        // else: optional, assume val implicitly
         
         if (!match(Token::ID)) throw runtime_error("Expected parameter name");
         pNames.push_back(previous->text);
@@ -161,9 +159,7 @@ FunDec* Parser::parseFunDec() {
             if (match(Token::CONST)) paramConst = true;
             if (match(Token::VAL)) { /* val */ }
             else if (match(Token::VAR)) { /* var */ }
-            else {
-                throw runtime_error("Expected 'val' or 'var' in parameter");
-            }
+            // else: optional
             
             if (!match(Token::ID)) throw runtime_error("Expected parameter name");
             pNames.push_back(previous->text);
@@ -275,7 +271,6 @@ Stm* Parser::parseStmt() {
 // Exp ::= Assignment
 Exp* Parser::parseExp() {
     // 1. Parsea la expresión con la siguiente precedencia (LogicOr).
-    // Esto intentará parsear 'a + b' primero.
     Exp* l = parseLogicOr();
     
     // 2. Verifica si la expresión fue seguida por el operador de asignación.
@@ -285,7 +280,6 @@ Exp* Parser::parseExp() {
         IdExp* idExp = dynamic_cast<IdExp*>(l);
         
         if (!idExp) {
-            // Error sintáctico/semántico: no se puede asignar a algo que no sea un ID.
             throw runtime_error("Invalid assignment target: Left side must be an ID.");
         }
         
@@ -298,7 +292,6 @@ Exp* Parser::parseExp() {
         return new AssignExp(name, r); 
     }
     
-    // 4. Si no hay operador de asignación, devuelve la expresión LogicOr.
     return l;
 }
 
@@ -334,9 +327,9 @@ Exp* Parser::parseEquality() {
     return l;
 }
 
-// Relational ::= Additive (("<"|">"|"<="|">=") Additive)*
+// Relational ::= Range (("<"|">"|"<="|">=") Range)*
 Exp* Parser::parseRelational() {
-    Exp* l = parseAdditive();
+    Exp* l = parseRange();
     while (check(Token::LT) || check(Token::GT) || check(Token::LE) || check(Token::GE)) {
         BinaryOp op;
         if (check(Token::LT)) op = LT_OP;
@@ -344,8 +337,26 @@ Exp* Parser::parseRelational() {
         else if (check(Token::LE)) op = LE_OP;
         else op = GE_OP;
         advance();
+        Exp* r = parseRange();
+        l = new BinaryExp(l, r, op);
+    }
+    return l;
+}
+
+// Range ::= Additive ((".." | "downTo") Additive)*
+Exp* Parser::parseRange() {
+    Exp* l = parseAdditive();
+    while (check(Token::RANGE) || check(Token::DOWNTO)) {
+        BinaryOp op = check(Token::RANGE) ? RANGE_OP : DOWNTO_OP;
+        advance();
         Exp* r = parseAdditive();
         l = new BinaryExp(l, r, op);
+    }
+    // Check for 'step' after range
+    if (check(Token::STEP)) {
+        advance();
+        Exp* stepVal = parseAdditive();
+        l = new BinaryExp(l, stepVal, STEP_OP);
     }
     return l;
 }
