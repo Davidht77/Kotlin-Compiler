@@ -445,7 +445,16 @@ int GenCodeVisitor::visit(FunDec* f) {
         offset -= 8;
     }
     
-    int reserva = 128; 
+    // Calculate reservation based on variable count
+    int numVars = 0;
+    if (functionVarCounts.count(f->nombre)) {
+        numVars = functionVarCounts[f->nombre];
+    } else {
+        numVars = 16; // Default fallback
+    }
+
+    int reserva = (numVars * 8 + 15) / 16 * 16; // Round up to multiple of 16
+    
     out << " subq $" << reserva << ", %rsp" << endl;
     
     f->cuerpo->accept(this);

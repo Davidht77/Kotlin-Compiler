@@ -5,6 +5,7 @@
 #include "parser.h"
 #include "ast.h"
 #include "visitor.h"
+#include "TypeChecker.h"
 
 using namespace std;
 
@@ -39,7 +40,6 @@ int main(int argc, const char* argv[]) {
     Parser parser(&scanner1);
     cout << "Creacion parser exitoso" << endl;
     // Parsear y generar AST
-  
     Program* program = parser.parseProgram();     
         cout << "PASS" << endl;
         string inputFile(argv[1]);
@@ -58,8 +58,14 @@ int main(int argc, const char* argv[]) {
         }
     cout << "Parseo exitoso" << endl;
 
+    // Type Checking and Variable Counting
+    cout << "Iniciando TypeChecker..." << endl;
+    TypeChecker typeChecker;
+    typeChecker.typecheck(program);
+    cout << "TypeChecker finalizado." << endl;
+
     cout << "Generando codigo ensamblador en " << outputFilename << endl;
-    GenCodeVisitor codigo(outfile);
+    GenCodeVisitor codigo(outfile, typeChecker.functionVarCounts); // Pass variable counts
     codigo.generar(program);
     outfile.close();
     

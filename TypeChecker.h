@@ -13,27 +13,34 @@ class BinaryExp;
 class NumberExp;
 class Program;
 class PrintStm;
-class AssignStm;
+class AssignExp; // Changed from AssignStm
 class FunDec;
 class ReturnStm;
-class Body;
+class Block; // Changed from Body
 class VarDec;
 class FcallExp;
 class BoolExp;
+class WhileStmt; // Added
+class IfStmt;    // Added
+class ForStmt;   // Added
+class StringExp; // Added
 
 class TypeVisitor {
 public:
 
     // --- Nodos de nivel superior ---
-    virtual void visit(Program* p) = 0;
-    virtual void visit(Body* b) = 0;
-    virtual void visit(VarDec* v) = 0;
-    virtual void visit(FunDec* f) = 0;
+    virtual Type* visit(Program* p) = 0;
+    virtual Type* visit(Block* b) = 0; // Changed from Body
+    virtual Type* visit(VarDec* v) = 0;
+    virtual Type* visit(FunDec* f) = 0;
 
     // --- Sentencias ---
-    virtual void visit(PrintStm* stm) = 0;
-    virtual void visit(AssignStm* stm) = 0;
-    virtual void visit(ReturnStm* stm) = 0;
+    virtual Type* visit(PrintStm* stm) = 0;
+    virtual Type* visit(AssignExp* stm) = 0; // Changed from AssignStm
+    virtual Type* visit(ReturnStm* stm) = 0;
+    virtual Type* visit(WhileStmt* stm) = 0; // Added
+    virtual Type* visit(IfStmt* stm) = 0;    // Added
+    virtual Type* visit(ForStmt* stm) = 0;   // Added
 
     // --- Expresiones ---
     virtual Type* visit(BinaryExp* e) = 0;
@@ -41,6 +48,7 @@ public:
     virtual Type* visit(IdExp* e) = 0;
     virtual Type* visit(BoolExp* e) = 0;
     virtual Type* visit(FcallExp* e) = 0;
+    virtual Type* visit(StringExp* e) = 0; // Added
 };
 
 
@@ -58,26 +66,36 @@ private:
     Type* intType;
     Type* boolType;
     Type* voidType;
+    Type* stringType; // Added
     Type* retornodefuncion;
     // Registro de funciones
     void add_function(FunDec* fd);
 
+    // Variable counting
+    string currentFunction;
+    int currentVarCount;
+
 public:
+    unordered_map<string, int> functionVarCounts; // Public to access from main
+
     TypeChecker();
 
     // Método principal de verificación
     void typecheck(Program* program);
 
     // --- Visitas de alto nivel ---
-    void visit(Program* p) override;
-    void visit(Body* b) override;
-    void visit(VarDec* v) override;
-    void visit(FunDec* f) override;
+    Type* visit(Program* p) override;
+    Type* visit(Block* b) override; // Changed from Body
+    Type* visit(VarDec* v) override;
+    Type* visit(FunDec* f) override;
 
     // --- Sentencias ---
-    void visit(PrintStm* stm) override;
-    void visit(AssignStm* stm) override;
-    void visit(ReturnStm* stm) override;
+    Type* visit(PrintStm* stm) override;
+    Type* visit(AssignExp* stm) override; // Changed from AssignStm
+    Type* visit(ReturnStm* stm) override;
+    Type* visit(WhileStmt* stm) override; // Added
+    Type* visit(IfStmt* stm) override;    // Added
+    Type* visit(ForStmt* stm) override;   // Added
 
     // --- Expresiones ---
     Type* visit(BinaryExp* e) override;
@@ -85,6 +103,7 @@ public:
     Type* visit(IdExp* e) override;
     Type* visit(BoolExp* e) override;
     Type* visit(FcallExp* e) override;
+    Type* visit(StringExp* e) override; // Added
 };
 
 #endif // TYPECHECKER_H

@@ -9,6 +9,8 @@ using namespace std;
 
 class Visitor;
 class VarDec;
+class Type; // Forward declaration for Type
+class TypeVisitor; // Forward declaration for TypeVisitor
 
 // Operadores binarios soportados
 enum BinaryOp { 
@@ -34,6 +36,7 @@ enum BinaryOp {
 class Stm{
 public:
     virtual int accept(Visitor* visitor) = 0;
+    virtual Type* accept(TypeVisitor* visitor) = 0; // Added
     virtual ~Stm() = 0;
 };
 
@@ -43,6 +46,7 @@ public:
     virtual int  accept(Visitor* visitor) = 0;
     virtual ~Exp() = 0;  // Destructor puro → clase abstracta
     static string binopToChar(BinaryOp op);  // Conversión operador → string
+    virtual Type* accept(TypeVisitor* visitor) = 0; // Para verificador de tipos
 };
 
 // Expresión binaria
@@ -52,6 +56,7 @@ public:
     Exp* right;
     BinaryOp op;
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // nuevo
     BinaryExp(Exp* l, Exp* r, BinaryOp op);
     ~BinaryExp();
 
@@ -62,6 +67,7 @@ class NumberExp : public Exp {
 public:
     int value;
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // nuevo
     NumberExp(int v);
     ~NumberExp();
 };
@@ -70,6 +76,7 @@ class BoolExp : public Exp {
 public:
     bool value;
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // nuevo
     BoolExp(bool v);
     ~BoolExp();
 };
@@ -79,6 +86,7 @@ class StringExp : public Exp {
 public:
     string value;
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // nuevo
     StringExp(string v);
     ~StringExp();
 };
@@ -88,6 +96,7 @@ class IdExp : public Exp {
 public:
     string value;
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // nuevo
     IdExp(string v);
     ~IdExp();
 };
@@ -101,6 +110,7 @@ public:
     bool isConst; 
     VarDec(string name, string type, Exp* init, bool isConst);
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // Changed to Type*
     ~VarDec();
 };
 
@@ -109,6 +119,7 @@ class Block : public Stm {
 public:
     list<Stm*> stmts;
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // Changed to Type*
     Block();
     ~Block();
 };
@@ -120,6 +131,7 @@ public:
     Block* elseBlock; // Can be nullptr
     IfStmt(Exp* condition, Block* thenBlock, Block* elseBlock);
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // Changed to Type*
     ~IfStmt(){};
 };
 
@@ -129,6 +141,7 @@ public:
     Block* block;
     WhileStmt(Exp* condition, Block* block);
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // Changed to Type*
     ~WhileStmt(){};
 };
 
@@ -139,6 +152,7 @@ public:
     Block* block;
     ForStmt(string varName, Exp* rangeExp, Block* block);
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // Changed to Type*
     ~ForStmt(){};
 };
 
@@ -147,6 +161,7 @@ public:
     string id;
     Exp* e;
     AssignExp(string, Exp*);
+    Type* accept(TypeVisitor* visitor); // nuevo
     ~AssignExp();
     int accept(Visitor* visitor);
 };
@@ -157,6 +172,7 @@ public:
     PrintStm(Exp*);
     ~PrintStm();
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // Changed to Type*
 };
 
 class ReturnStm: public Stm {
@@ -165,6 +181,7 @@ public:
     ReturnStm(Exp* e);
     ~ReturnStm(){};
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // Changed to Type*
 };
 
 class FcallExp: public Exp {
@@ -172,6 +189,7 @@ public:
     string nombre;
     vector<Exp*> argumentos;
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // nuevo
     FcallExp(string nombre, vector<Exp*> args);
     ~FcallExp(){};
 };
@@ -184,6 +202,7 @@ public:
     vector<string> Ptipos;
     vector<string> Pnombres;
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // Changed to Type*
     FunDec(string nombre, string tipo, vector<string> Ptipos, vector<string> Pnombres, Block* cuerpo);
     ~FunDec(){};
 };
@@ -195,6 +214,7 @@ public:
     Program();
     ~Program();
     int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor); // Changed to Type*
 };
 
 #endif // AST_H

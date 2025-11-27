@@ -49,8 +49,10 @@ public:
 class GenCodeVisitor : public Visitor {
 private:
     std::ostream& out;
+    unordered_map<string, int> functionVarCounts; // Added
+
 public:
-    GenCodeVisitor(std::ostream& out) : out(out) {}
+    GenCodeVisitor(std::ostream& out, unordered_map<string, int> counts) : out(out), functionVarCounts(counts) {} // Updated constructor
     int generar(Program* program);
 
     // Contexto de generación de código
