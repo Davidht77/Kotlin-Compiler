@@ -7,7 +7,7 @@ print_fmt_str: .string "%s\n"
 main:
  pushq %rbp
  movq %rsp, %rbp
- subq $128, %rsp
+ subq $32, %rsp
  leaq str_0(%rip), %rax
  movq %rax, %rsi
  leaq print_fmt_str(%rip), %rdi

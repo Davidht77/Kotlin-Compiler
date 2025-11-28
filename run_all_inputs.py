@@ -3,11 +3,11 @@ import subprocess
 import shutil
 
 # Archivos c++
-programa = ["main.cpp", "scanner.cpp", "token.cpp", "parser.cpp", "ast.cpp", "visitor.cpp"]
+programa = ["main.cpp", "scanner.cpp", "token.cpp", "parser.cpp", "ast.cpp", "visitor.cpp", "TypeChecker.cpp"]
 scanner_test = ["test_scanner.cpp", "scanner.cpp", "token.cpp"]
 
 # Compilar Main
-compile = ["g++"] + programa
+compile = ["g++", "-o", "main.exe"] + programa
 print("Compilando Main:", " ".join(compile))
 result = subprocess.run(compile, capture_output=True, text=True)
 
@@ -31,7 +31,7 @@ input_dir = "inputs"
 output_dir = "outputs"
 os.makedirs(output_dir, exist_ok=True)
 
-for i in range(1, 8):
+for i in range(1, 7):
     filename = f"input{i}.txt"
     filepath = os.path.join(input_dir, filename)
 

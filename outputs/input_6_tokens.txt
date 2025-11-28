@@ -109,6 +109,8 @@ TOKEN(LPAREN, "(")
 TOKEN(ID, "i")
 TOKEN(IN, "in")
 TOKEN(NUM, "0")
+
+TOKEN(NUM, "5")
 TOKEN(RPAREN, ")")
 TOKEN(LKEY, "{")
 TOKEN(PRINT, "print")

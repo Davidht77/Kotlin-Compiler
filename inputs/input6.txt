@@ -21,7 +21,7 @@ fun main() {
         println(x);
     }
     
-    for (i in 0) {
+    for (i in 0..5) {
         print(i);
     }
 }

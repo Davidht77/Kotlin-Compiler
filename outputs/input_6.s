@@ -12,7 +12,7 @@ add:
  movq %rsp, %rbp
  movq %rdi,-8(%rbp)
  movq %rsi,-16(%rbp)
- subq $128, %rsp
+ subq $16, %rsp
  movq -8(%rbp), %rax
  pushq %rax
  movq -16(%rbp), %rax
@@ -28,7 +28,7 @@ ret
 main:
  pushq %rbp
  movq %rsp, %rbp
- subq $128, %rsp
+ subq $16, %rsp
  movq x(%rip), %rax
  mov %rax, %rdi
  movq y(%rip), %rax
@@ -92,3 +92,30 @@ while_1:
  jmp while_1
 endwhile_1:
  movq $0, %rax
+ movq %rax, -16(%rbp)
+ movq $5, %rax
+ movq %rax, -24(%rbp)
+ movq $1, %rax
+ movq %rax, -32(%rbp)
+ movq -16(%rbp), %rax
+ movq %rax, -40(%rbp)
+loop_2:
+ movq -40(%rbp), %rax
+ movq -24(%rbp), %rcx
+ cmpq %rcx, %rax
+ jg endloop_2
+ movq -40(%rbp), %rax
+ movq %rax, %rsi
+ leaq print_fmt_num(%rip), %rdi
+ movl $0, %eax
+ call printf@PLT
+ movq -40(%rbp), %rax
+ movq -32(%rbp), %rcx
+ addq %rcx, %rax
+ movq %rax, -40(%rbp)
+ jmp loop_2
+endloop_2:
+.end_main:
+leave
+ret
+.section .note.GNU-stack,"",@progbits

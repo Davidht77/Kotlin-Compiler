@@ -32,12 +32,51 @@ TypeChecker::TypeChecker() {
     boolType = new Type(Type::BOOL);
     voidType = new Type(Type::VOID);
     stringType = new Type(Type::STRING); // Added
+    rangeType = new Type(Type::RANGE); // Added
     currentVarCount = 0;
 }
 
 // ===========================================================
 //   Registrar funciones globales
 // ===========================================================
+
+// Helper to infer return type from function body
+Type* TypeChecker::inferReturnType(Stm* s) {
+    if (!s) return nullptr;
+
+    if (ReturnStm* ret = dynamic_cast<ReturnStm*>(s)) {
+        if (ret->e) {
+            return ret->e->accept(this);
+        } else {
+            return voidType;
+        }
+    }
+
+    if (Block* b = dynamic_cast<Block*>(s)) {
+        for (Stm* stmt : b->stmts) {
+            Type* t = inferReturnType(stmt);
+            if (t) return t;
+        }
+    }
+
+    if (IfStmt* ifStmt = dynamic_cast<IfStmt*>(s)) {
+        Type* t = inferReturnType(ifStmt->thenBlock);
+        if (t) return t;
+        if (ifStmt->elseBlock) {
+            return inferReturnType(ifStmt->elseBlock);
+        }
+    }
+
+    if (WhileStmt* whileStmt = dynamic_cast<WhileStmt*>(s)) {
+        return inferReturnType(whileStmt->block);
+    }
+
+    if (ForStmt* forStmt = dynamic_cast<ForStmt*>(s)) {
+        return inferReturnType(forStmt->block);
+    }
+
+    return nullptr;
+}
 
 void TypeChecker::add_function(FunDec* fd) {
     if (functions.find(fd->nombre) != functions.end()) {
@@ -46,17 +85,39 @@ void TypeChecker::add_function(FunDec* fd) {
     }
 
     Type* returnType = new Type();
-    if (!returnType->set_basic_type(fd->tipo)) {
+    if (fd->tipo.empty()) {
+        // Inference logic
+        // Temporarily add parameters to env to allow expression type checking
+        env.add_level();
+        for (size_t i = 0; i < fd->Pnombres.size(); ++i) {
+            Type* pt = new Type();
+             // Assuming parameters must have explicit types for now
+             if (fd->Ptipos[i].empty()) {
+                 cerr << "Error: parámetros deben tener tipo explícito en función '" << fd->nombre << "'." << endl;
+                 exit(0);
+             }
+            if (!pt->set_basic_type(fd->Ptipos[i])) {
+                cerr << "Error: tipo de parámetro inválido en función '" << fd->nombre << "'." << endl;
+                exit(0);
+            }
+            env.add_var(fd->Pnombres[i], pt);
+        }
+
+        Type* inferred = inferReturnType(fd->cuerpo);
+        env.remove_level();
+
+        if (inferred) {
+            returnType = inferred;
+        } else {
+            returnType->ttype = Type::VOID;
+        }
+    } else if (!returnType->set_basic_type(fd->tipo)) {
         cerr << "Error: tipo de retorno no válido en función '" << fd->nombre << "'." << endl;
         exit(0);
     }
 
     functions[fd->nombre] = returnType;
 }
-
-// ===========================================================
-//   Método principal de verificación
-// ===========================================================
 
 void TypeChecker::typecheck(Program* program) {
     if (program) program->accept(this);
@@ -95,7 +156,15 @@ Type* TypeChecker::visit(Block* b) {
 
 Type* TypeChecker::visit(VarDec* v) {
     Type* t = new Type();
-    if (!t->set_basic_type(v->type)) { // Changed from v->tipo to v->type
+    if (v->type.empty()) {
+        // Inference from initializer
+        if (v->init) {
+             t = v->init->accept(this);
+        } else {
+            cerr << "Error: variable '" << v->name << "' sin tipo ni inicializador." << endl;
+            exit(0);
+        }
+    } else if (!t->set_basic_type(v->type)) { // Changed from v->tipo to v->type
         cerr << "Error: tipo de variable no válido." << endl;
         exit(0);
     }
@@ -137,8 +206,10 @@ Type* TypeChecker::visit(FunDec* f) {
     }
     functionVarCounts[currentFunction] = currentVarCount;
 
-    Type* returnType = new Type();
-    returnType->set_basic_type(f->tipo);
+    functionVarCounts[currentFunction] = currentVarCount;
+
+    // Use the type already registered in add_function
+    Type* returnType = functions[f->nombre];
     retornodefuncion = returnType;
     f->cuerpo->accept(this);
 
@@ -237,7 +308,11 @@ Type* TypeChecker::visit(ForStmt* stm) {
         functionVarCounts[currentFunction] = currentVarCount;
     }
 
-    stm->rangeExp->accept(this); // Visit range to check types there
+    Type* rangeT = stm->rangeExp->accept(this); // Visit range to check types there
+    if (!rangeT->match(rangeType)) {
+        cerr << "Error: for loop range must be a range type." << endl;
+        exit(0);
+    }
     stm->block->accept(this);
     env.remove_level();
     return voidType;
@@ -297,7 +372,7 @@ Type* TypeChecker::visit(BinaryExp* e) {
                 cerr << "Error: rango requiere operandos int." << endl;
                 exit(0);
              }
-             return intType; // Returning int as a placeholder for Range
+             return rangeType;
 
         default:
             cerr << "Error: operador binario no soportado." << endl;

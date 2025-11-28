@@ -11,8 +11,8 @@ using namespace std;
 
 class Type {
 public:
-    enum TType { NOTYPE, VOID, INT, BOOL, STRING };
-    static const char* type_names[4];
+    enum TType { NOTYPE, VOID, INT, BOOL, STRING, RANGE };
+    static const char* type_names[6];
 
     TType ttype;
 
@@ -34,15 +34,16 @@ public:
 
     // Conversión string 
     static TType string_to_type(const string& s) {
-        if (s == "int") return INT;
-        if (s == "bool") return BOOL;
-        if (s == "void") return VOID;
+        if (s == "int" || s == "Int") return INT;
+        if (s == "bool" || s == "Bool") return BOOL;
+        if (s == "void" || s == "Void") return VOID;
+        if (s == "string" || s == "String") return STRING;
         return NOTYPE;
     }
 
 
 };
 
-inline const char* Type::type_names[4] = { "notype", "void", "int", "bool" };
+inline const char* Type::type_names[6] = { "notype", "void", "int", "bool", "string", "range" };
 
 #endif // SEMANTIC_TYPES_H

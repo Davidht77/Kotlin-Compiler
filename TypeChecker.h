@@ -67,9 +67,13 @@ private:
     Type* boolType;
     Type* voidType;
     Type* stringType; // Added
+    Type* rangeType; // Added
     Type* retornodefuncion;
     // Registro de funciones
     void add_function(FunDec* fd);
+    
+    // Helper for return type inference
+    Type* inferReturnType(Stm* s);
 
     // Variable counting
     string currentFunction;
