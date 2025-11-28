@@ -30,10 +30,6 @@ public:
 
     bool canAssignTo(Type* target) const {
         if (match(target)) return true;
-        // Allow assigning int literal (which is usually inferred as INT) to other numeric types
-        // For simplicity, allow any numeric to numeric assignment for now, 
-        // or implement strict widening.
-        // Let's allow any numeric to any numeric to avoid "10" (Int) failing for Byte.
         if (this->isNumeric() && target->isNumeric()) return true;
         return false;
     }

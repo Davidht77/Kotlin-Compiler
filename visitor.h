@@ -1,6 +1,7 @@
 #ifndef VISITOR_H
 #define VISITOR_H
 #include "ast.h"
+#include "environment.h" // Added
 #include <list>
 #include <vector>
 #include <unordered_map>
@@ -56,7 +57,7 @@ public:
     int generar(Program* program);
 
     // Contexto de generación de código
-    unordered_map<string, int> memoria;
+    Environment<int> env; // lo que antes era memoria
     unordered_map<string, bool> memoriaGlobal;
     unordered_map<string, string> stringLiterals; // Para gestionar strings y sus etiquetas (NUEVO)
     int stringCont = 0; // Contador de etiquetas de strings (NUEVO)

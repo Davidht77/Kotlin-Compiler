@@ -47,6 +47,7 @@ public:
     virtual ~Exp() = 0;  // Destructor puro → clase abstracta
     static string binopToChar(BinaryOp op);  // Conversión operador → string
     virtual Type* accept(TypeVisitor* visitor) = 0; // Para verificador de tipos
+    Type* inferredType = nullptr; // Para guardar el tipo inferido
 };
 
 // Expresión binaria

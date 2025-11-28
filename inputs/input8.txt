@@ -1,7 +1,13 @@
 fun main() {
-    val a = 10
-    val b = 20.5
-    val c = 30
+    val byte: Byte = 127
+    val short: Short = 32
+    val int: Int = 2
+    val long: Long = 9545646
+    val float: Float = 3.14159
+    val double: Double = 3.141592653589793
     
-    println(a + b + c)
+    val suma = int + long
+    val division = double / float
+    println(suma)
+    println(division)
 }

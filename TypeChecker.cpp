@@ -392,20 +392,33 @@ Type* TypeChecker::visit(BinaryExp* e) {
             cerr << "Error: operador binario no soportado." << endl;
             exit(0);
     }
+    e->inferredType = left; // Assign inferred type (simplified)
+    return left;
 }
 
-Type* TypeChecker::visit(NumberExp* e) { return intType; }
+Type* TypeChecker::visit(NumberExp* e) { 
+    e->inferredType = intType; 
+    return intType; 
+}
 
-Type* TypeChecker::visit(BoolExp* e) { return boolType; }
+Type* TypeChecker::visit(BoolExp* e) { 
+    e->inferredType = boolType;
+    return boolType; 
+}
 
-Type* TypeChecker::visit(StringExp* e) { return stringType; } // Added
+Type* TypeChecker::visit(StringExp* e) { 
+    e->inferredType = stringType;
+    return stringType; 
+} // Added
 
 Type* TypeChecker::visit(IdExp* e) {
     if (!env.check(e->value)) {
         cerr << "Error: variable '" << e->value << "' no declarada." << endl;
         exit(0);
     }
-    return env.lookup(e->value);
+    Type* t = env.lookup(e->value);
+    e->inferredType = t;
+    return t;
 }
 
 Type* TypeChecker::visit(FcallExp* e) {
@@ -415,5 +428,7 @@ Type* TypeChecker::visit(FcallExp* e) {
         exit(0);
     }
 
-    return it->second;
+    Type* t = it->second;
+    e->inferredType = t;
+    return t;
 }
