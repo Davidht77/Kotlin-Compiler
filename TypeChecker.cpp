@@ -5,6 +5,7 @@ using namespace std;
 
 
 Type* NumberExp::accept(TypeVisitor* v) { return v->visit(this); }
+Type* DoubleExp::accept(TypeVisitor* v) { return v->visit(this); }
 Type* BoolExp::accept(TypeVisitor* v) { return v->visit(this); }
 Type* IdExp::accept(TypeVisitor* v) { return v->visit(this); }
 Type* BinaryExp::accept(TypeVisitor* v) { return v->visit(this); }
@@ -231,8 +232,8 @@ Type* TypeChecker::visit(FunDec* f) {
 
 Type* TypeChecker::visit(PrintStm* stm) {
     Type* t = stm->e->accept(this);
-    if (!(t->match(intType) || t->match(boolType) || t->match(stringType))) { // Added stringType support
-        cerr << "Error: tipo inválido en print (solo int, bool o string)." << endl;
+    if (!(t->match(intType) || t->match(boolType) || t->match(stringType) || t->ttype == Type::DOUBLE || t->ttype == Type::FLOAT)) { 
+        cerr << "Error: tipo inválido en print (solo int, bool, string, double o float)." << endl;
         exit(0);
     }
     return voidType;
@@ -328,6 +329,7 @@ Type* TypeChecker::visit(ForStmt* stm) {
 Type* TypeChecker::visit(BinaryExp* e) {
     Type* left = e->left->accept(this);
     Type* right = e->right->accept(this);
+    Type* resultType = nullptr;
 
     switch (e->op) {
         case PLUS_OP: 
@@ -335,15 +337,26 @@ Type* TypeChecker::visit(BinaryExp* e) {
         case MUL_OP: 
         case DIV_OP: 
         case POW_OP:
-        case MOD_OP: // Added MOD_OP
+        case MOD_OP: 
             // Allow all numeric types
-            if (!((left->ttype >= Type::INT && left->ttype <= Type::ULONG) && 
-                  (right->ttype >= Type::INT && right->ttype <= Type::ULONG))) {
+            if (!((left->isNumeric()) && (right->isNumeric()))) {
                 cerr << "Error: operación aritmética requiere operandos numéricos." << endl;
                 exit(0);
             }
-            // Simplified: return intType for everything or left type.
-            return left; 
+            
+            // Type promotion logic
+            if (left->ttype == Type::DOUBLE || right->ttype == Type::DOUBLE) {
+                 resultType = new Type(Type::DOUBLE);
+            }
+            else if (left->ttype == Type::FLOAT || right->ttype == Type::FLOAT) {
+                 resultType = new Type(Type::FLOAT);
+            }
+            else {
+                // Default to left type for integers (or largest)
+                resultType = left; 
+            }
+            break;
+
         case LE_OP:
         case LT_OP:
         case GT_OP:
@@ -363,7 +376,8 @@ Type* TypeChecker::visit(BinaryExp* e) {
                     }
                  }
             }
-            return boolType;
+            resultType = boolType;
+            break;
 
         case AND_OP:
         case OR_OP:
@@ -371,7 +385,8 @@ Type* TypeChecker::visit(BinaryExp* e) {
                 cerr << "Error: operación lógicas requiere operandos bool." << endl;
                 exit(0);
             }
-            return boolType;
+            resultType = boolType;
+            break;
             
         case RANGE_OP:
         case DOWNTO_OP:
@@ -379,21 +394,24 @@ Type* TypeChecker::visit(BinaryExp* e) {
                 cerr << "Error: rango requiere operandos numéricos." << endl;
                 exit(0);
              }
-             return rangeType;
+             resultType = rangeType;
+             break;
 
         case STEP_OP:
              if (!((left->match(rangeType) || left->isNumeric()) && right->isNumeric())) {
                 cerr << "Error: step requiere un rango (o número) y un paso numérico." << endl;
                 exit(0);
              }
-             return rangeType;
+             resultType = rangeType;
+             break;
 
         default:
             cerr << "Error: operador binario no soportado." << endl;
             exit(0);
     }
-    e->inferredType = left; // Assign inferred type (simplified)
-    return left;
+    
+    e->inferredType = resultType;
+    return resultType;
 }
 
 Type* TypeChecker::visit(NumberExp* e) { 
@@ -409,7 +427,13 @@ Type* TypeChecker::visit(BoolExp* e) {
 Type* TypeChecker::visit(StringExp* e) { 
     e->inferredType = stringType;
     return stringType; 
-} // Added
+} 
+
+Type* TypeChecker::visit(DoubleExp* e) {
+    Type* doubleType = new Type(Type::DOUBLE);
+    e->inferredType = doubleType;
+    return doubleType;
+}
 
 Type* TypeChecker::visit(IdExp* e) {
     if (!env.check(e->value)) {
@@ -422,9 +446,53 @@ Type* TypeChecker::visit(IdExp* e) {
 }
 
 Type* TypeChecker::visit(FcallExp* e) {
+    if (e->receiver) {
+        Type* recvType = e->receiver->accept(this);
+        for (auto arg : e->argumentos) {
+            arg->accept(this);
+        }
+
+        static unordered_map<string, Type::TType> conversions = {
+            {"toByte", Type::BYTE},
+            {"toShort", Type::SHORT},
+            {"toInt", Type::INT},
+            {"toLong", Type::LONG},
+            {"toFloat", Type::FLOAT},
+            {"toDouble", Type::DOUBLE},
+            {"toUByte", Type::UBYTE},
+            {"toUShort", Type::USHORT},
+            {"toUInt", Type::UINT},
+            {"toULong", Type::ULONG}
+        };
+
+        auto itConv = conversions.find(e->nombre);
+        if (itConv == conversions.end()) {
+            cerr << "Error: metodo '" << e->nombre << "' no soportado." << endl;
+            exit(0);
+        }
+
+        auto isIntegral = [](Type* t) {
+            return t->ttype == Type::BYTE || t->ttype == Type::SHORT || t->ttype == Type::INT || t->ttype == Type::LONG ||
+                   t->ttype == Type::UBYTE || t->ttype == Type::USHORT || t->ttype == Type::UINT || t->ttype == Type::ULONG;
+        };
+
+        if (!isIntegral(recvType)) {
+            cerr << "Error: conversion '" << e->nombre << "' solo permitida desde tipos enteros." << endl;
+            exit(0);
+        }
+
+        Type* result = new Type(itConv->second);
+        e->inferredType = result;
+        return result;
+    }
+
+    for (auto arg : e->argumentos) {
+        arg->accept(this);
+    }
+
     auto it = functions.find(e->nombre);
     if (it == functions.end()) {
-        cerr << "Error: llamada a función no declarada '" << e->nombre << "'." << endl;
+        cerr << "Error: llamada a funcion no declarada '" << e->nombre << "'." << endl;
         exit(0);
     }
 

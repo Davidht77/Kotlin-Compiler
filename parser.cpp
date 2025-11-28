@@ -406,29 +406,41 @@ Exp* Parser::parseUnary() {
 
 // Primary ::= id | Num | Bool | String | "(" Exp ")" | FunctionCall
 Exp* Parser::parsePrimary() {
+    Exp* expr = nullptr;
+
     if (match(Token::NUM)) {
-        return new NumberExp(stoi(previous->text));
+        string text = previous->text;
+        if (text.find('.') != string::npos) {
+            expr = new DoubleExp(stod(text));
+        } else {
+            expr = new NumberExp(stoi(text));
+        }
     }
     // << NUEVO: Reconocimiento de String Literal >>
     else if (match(Token::STRING_LIT)) { 
-        return new StringExp(previous->text);
+        expr = new StringExp(previous->text);
     }
     // << FIN NUEVO >>
     else if (match(Token::TRUE)) {
-        return new BoolExp(true);
+        expr = new BoolExp(true);
     }
     else if (match(Token::FALSE)) {
-        return new BoolExp(false);
+        expr = new BoolExp(false);
     }
     else if (match(Token::LPAREN)) {
-        Exp* e = parseExp();
+        expr = parseExp();
         match(Token::RPAREN);
-        return e;
     }
     else if (match(Token::ID)) {
-        string name = previous->text;
+        expr = new IdExp(previous->text);
+    }
+    else {
+        throw runtime_error("Expected expression");
+    }
+
+    // Postfix: function call or method call (e.g., foo(), 100.toByte())
+    while (true) {
         if (check(Token::LPAREN)) {
-            // FunctionCall
             match(Token::LPAREN);
             vector<Exp*> args;
             if (!check(Token::RPAREN)) {
@@ -437,10 +449,30 @@ Exp* Parser::parsePrimary() {
                 } while (match(Token::COMA));
             }
             if (!match(Token::RPAREN)) throw runtime_error("Expected ')' after function arguments");
-            return new FcallExp(name, args);
-        } else {
-            return new IdExp(name);
+
+            IdExp* id = dynamic_cast<IdExp*>(expr);
+            if (!id) throw runtime_error("Solo se pueden llamar identificadores directamente.");
+            expr = new FcallExp(id->value, args);
+        }
+        else if (match(Token::DOT)) {
+            if (!match(Token::ID)) throw runtime_error("Expected identifier after '.'");
+            string methodName = previous->text;
+
+            vector<Exp*> args;
+            if (match(Token::LPAREN)) {
+                if (!check(Token::RPAREN)) {
+                    do {
+                        args.push_back(parseExp());
+                    } while (match(Token::COMA));
+                }
+                if (!match(Token::RPAREN)) throw runtime_error("Expected ')' after method arguments");
+            }
+            expr = new FcallExp(methodName, args, expr);
+        }
+        else {
+            break;
         }
     }
-    throw runtime_error("Expected expression");
+
+    return expr;
 }

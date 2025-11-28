@@ -73,6 +73,16 @@ public:
     ~NumberExp();
 };
 
+// Expresión numérica (Double)
+class DoubleExp : public Exp {
+public:
+    double value;
+    int accept(Visitor* visitor);
+    Type* accept(TypeVisitor* visitor);
+    DoubleExp(double v);
+    ~DoubleExp();
+};
+
 class BoolExp : public Exp {
 public:
     bool value;
@@ -189,10 +199,11 @@ class FcallExp: public Exp {
 public:
     string nombre;
     vector<Exp*> argumentos;
+    Exp* receiver; // Optional receiver for method-style calls (e.g., 100.toByte())
     int accept(Visitor* visitor);
     Type* accept(TypeVisitor* visitor); // nuevo
-    FcallExp(string nombre, vector<Exp*> args);
-    ~FcallExp(){};
+    FcallExp(string nombre, vector<Exp*> args, Exp* receiver = nullptr);
+    ~FcallExp(){}; 
 };
 
 class FunDec{

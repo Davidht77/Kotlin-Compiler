@@ -32,6 +32,9 @@ BinaryExp::~BinaryExp() { delete left; delete right; }
 NumberExp::NumberExp(int v) : value(v) {}
 NumberExp::~NumberExp() {}
 
+DoubleExp::DoubleExp(double v) : value(v) {}
+DoubleExp::~DoubleExp() {}
+
 BoolExp::BoolExp(bool v) : value(v) {}
 BoolExp::~BoolExp() {}
 
@@ -68,7 +71,8 @@ PrintStm::~PrintStm() { delete e; }
 
 ReturnStm::ReturnStm(Exp* e) : e(e) {}
 
-FcallExp::FcallExp(string nombre, vector<Exp*> args) : nombre(nombre), argumentos(args) {}
+FcallExp::FcallExp(string nombre, vector<Exp*> args, Exp* receiver) 
+    : nombre(nombre), argumentos(args), receiver(receiver) {}
 
 FunDec::FunDec(string nombre, string tipo, vector<string> Ptipos, vector<string> Pnombres, Block* cuerpo)
     : nombre(nombre), tipo(tipo), Ptipos(Ptipos), Pnombres(Pnombres), cuerpo(cuerpo) {}

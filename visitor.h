@@ -25,11 +25,13 @@ class FunDec;
 class ForStmt;   
 class IdExp;
 class StringExp; // Declaración de StringExp (NUEVO)
+class DoubleExp; // Declaración de DoubleExp (NUEVO)
 
 class Visitor {
 public:
     virtual int visit(BinaryExp* exp) = 0;
     virtual int visit(NumberExp* exp) = 0;
+    virtual int visit(DoubleExp* exp) = 0; // Método para DoubleExp (NUEVO)
     virtual int visit(BoolExp* exp) = 0; 
     virtual int visit(IdExp* exp) = 0;
     virtual int visit(StringExp* exp) = 0; // Método para StringExp (NUEVO)
@@ -69,6 +71,7 @@ public:
     // Métodos de visita (Implementación de la interfaz Visitor)
     int visit(BinaryExp* exp) override;
     int visit(NumberExp* exp) override;
+    int visit(DoubleExp* exp) override; // Implementación de DoubleExp (NUEVO)
     int visit(BoolExp* exp) override;
     int visit(IdExp* exp) override;
     int visit(StringExp* exp) override; // Implementación de StringExp (NUEVO)

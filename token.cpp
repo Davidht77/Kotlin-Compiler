@@ -64,6 +64,7 @@ ostream& operator<<(ostream& outs, const Token& tok) {
         case Token::DQM:    outs << "TOKEN(DQM, \""    << tok.text << "\")"; break;
         case Token::SQM:    outs << "TOKEN(SQM, \""    << tok.text << "\")"; break;
         case Token::STRING_LIT: outs << "TOKEN(STRING_LIT, \"" << tok.text << "\")"; break; // <-- NUEVO
+        case Token::FLOAT_LIT: outs << "TOKEN(FLOAT_LIT, \"" << tok.text << "\")"; break;
         case Token::CONJ:   outs << "TOKEN(CONJ, \""   << tok.text << "\")"; break;
         case Token::DISJ:   outs << "TOKEN(DISJ, \""   << tok.text << "\")"; break;
         case Token::NOT:    outs << "TOKEN(NOT, \""    << tok.text << "\")"; break;

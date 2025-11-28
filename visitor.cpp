@@ -5,37 +5,62 @@
 #include <unordered_map>
 #include <vector>
 #include <algorithm>
+#include <cstring>
 #include <string>
 using namespace std;
 
 // Helper to get register name based on size
 string getReg(string baseReg, int size) {
-    if (baseReg == "rax") {
+    if (baseReg == "rax" || baseReg == "%rax") {
         if (size == 1) return "%al";
         if (size == 2) return "%ax";
         if (size == 4) return "%eax";
         return "%rax";
     }
-    if (baseReg == "rcx") {
+    if (baseReg == "rcx" || baseReg == "%rcx") {
         if (size == 1) return "%cl";
         if (size == 2) return "%cx";
         if (size == 4) return "%ecx";
         return "%rcx";
     }
-    if (baseReg == "rdx") {
+    if (baseReg == "rdx" || baseReg == "%rdx") {
         if (size == 1) return "%dl";
         if (size == 2) return "%dx";
         if (size == 4) return "%edx";
         return "%rdx";
     }
-    if (baseReg == "rbx") {
+    if (baseReg == "rbx" || baseReg == "%rbx") {
         if (size == 1) return "%bl";
         if (size == 2) return "%bx";
         if (size == 4) return "%ebx";
         return "%rbx";
     }
+    if (baseReg == "rdi" || baseReg == "%rdi") {
+        if (size == 1) return "%dil";
+        if (size == 2) return "%di";
+        if (size == 4) return "%edi";
+        return "%rdi";
+    }
+    if (baseReg == "rsi" || baseReg == "%rsi") {
+        if (size == 1) return "%sil";
+        if (size == 2) return "%si";
+        if (size == 4) return "%esi";
+        return "%rsi";
+    }
+    if (baseReg == "r8" || baseReg == "%r8") {
+        if (size == 1) return "%r8b";
+        if (size == 2) return "%r8w";
+        if (size == 4) return "%r8d";
+        return "%r8";
+    }
+    if (baseReg == "r9" || baseReg == "%r9") {
+        if (size == 1) return "%r9b";
+        if (size == 2) return "%r9w";
+        if (size == 4) return "%r9d";
+        return "%r9";
+    }
     // Add more if needed
-    return "%" + baseReg;
+    return (baseReg[0] == '%' ? "" : "%") + baseReg;
 }
 
 // Helper to get instruction suffix
@@ -62,6 +87,10 @@ int BinaryExp::accept(Visitor* visitor) {
 }
 
 int NumberExp::accept(Visitor* visitor) {
+    return visitor->visit(this);
+}
+
+int DoubleExp::accept(Visitor* visitor) {
     return visitor->visit(this);
 }
 
@@ -137,6 +166,7 @@ int GenCodeVisitor::visit(Program* program) {
     // 1. Sección de datos
     out << ".data\n";
     out << "print_fmt_num: .string \"%ld \\n\""<<endl;
+    out << "print_fmt_float: .string \"%f\\n\""<<endl; // Added float format
     out << "print_fmt_str: .string \"%s\\n\""<<endl;
 
     // A. Recorrer VarDecs Globales para registrarlas y definirlas estáticamente.
@@ -239,6 +269,14 @@ int GenCodeVisitor::visit(NumberExp* exp) {
     return 0;
 }
 
+int GenCodeVisitor::visit(DoubleExp* exp) {
+    long long bits;
+    double d = exp->value;
+    memcpy(&bits, &d, sizeof(bits));
+    out << " movabsq $" << bits << ", %rax\n";
+    return 0;
+}
+
 int GenCodeVisitor::visit(BoolExp* exp) {
     int size = getTypeSize(exp->inferredType);
     string reg = getReg("rax", size);
@@ -273,6 +311,85 @@ int GenCodeVisitor::visit(IdExp* exp) {
 }
 
 int GenCodeVisitor::visit(BinaryExp* exp) {
+    bool operandsAreDouble = (exp->left->inferredType && (exp->left->inferredType->ttype == Type::DOUBLE || exp->left->inferredType->ttype == Type::FLOAT)) ||
+                             (exp->right->inferredType && (exp->right->inferredType->ttype == Type::DOUBLE || exp->right->inferredType->ttype == Type::FLOAT));
+
+    if (operandsAreDouble) {
+        // Evaluate Left
+        exp->left->accept(this);
+        // Convert to double if int
+        if (exp->left->inferredType->isNumeric() && exp->left->inferredType->ttype != Type::DOUBLE && exp->left->inferredType->ttype != Type::FLOAT) {
+             out << " cvtsi2sdq %rax, %xmm0\n";
+             out << " movq %xmm0, %rax\n";
+        }
+        out << " pushq %rax\n"; // Push bits of left operand
+
+        // Evaluate Right
+        exp->right->accept(this);
+        // Convert to double if int
+        if (exp->right->inferredType->isNumeric() && exp->right->inferredType->ttype != Type::DOUBLE && exp->right->inferredType->ttype != Type::FLOAT) {
+             out << " cvtsi2sdq %rax, %xmm0\n";
+             out << " movq %xmm0, %rax\n";
+        }
+        
+        // Right is in RAX (bits). Move to XMM1.
+        out << " movq %rax, %xmm1\n";
+        
+        // Pop Left to RAX, then move to XMM0.
+        out << " popq %rax\n";
+        out << " movq %rax, %xmm0\n";
+
+        switch (exp->op) {
+            case PLUS_OP:  out << " addsd %xmm1, %xmm0\n"; break;
+            case MINUS_OP: out << " subsd %xmm1, %xmm0\n"; break;
+            case MUL_OP:   out << " mulsd %xmm1, %xmm0\n"; break;
+            case DIV_OP:   out << " divsd %xmm1, %xmm0\n"; break;
+            // Comparisons
+            case LE_OP:
+                out << " ucomisd %xmm1, %xmm0\n"
+                    << " movl $0, %eax\n"
+                    << " setbe %al\n" // Below or Equal (unsigned check for floats)
+                    << " movzbq %al, %rax\n";
+                return 0;
+            case LT_OP:
+                out << " ucomisd %xmm1, %xmm0\n"
+                    << " movl $0, %eax\n"
+                    << " setb %al\n" // Below
+                    << " movzbq %al, %rax\n";
+                return 0;
+            case GT_OP:
+                out << " ucomisd %xmm1, %xmm0\n"
+                    << " movl $0, %eax\n"
+                    << " setja %al\n" // Above (unsigned check for floats)
+                    << " movzbq %al, %rax\n";
+                return 0;
+            case GE_OP:
+                out << " ucomisd %xmm1, %xmm0\n"
+                    << " movl $0, %eax\n"
+                    << " setae %al\n" // Above or Equal
+                    << " movzbq %al, %rax\n";
+                return 0;
+            case EQ_OP:
+                out << " ucomisd %xmm1, %xmm0\n"
+                    << " movl $0, %eax\n"
+                    << " sete %al\n" 
+                    << " movzbq %al, %rax\n";
+                if (exp->op == NE_OP) out << " xorq $1, %rax\n"; // Invert for NE
+                return 0;
+            case NE_OP:
+                out << " ucomisd %xmm1, %xmm0\n"
+                    << " movl $0, %eax\n"
+                    << " setne %al\n" 
+                    << " movzbq %al, %rax\n";
+                return 0;
+            default: out << " # Operator not supported for doubles yet\n"; break;
+        }
+        
+        // Result is in XMM0. Move bits back to RAX.
+        out << " movq %xmm0, %rax\n";
+        return 0;
+    }
+
     exp->left->accept(this);
     out << " pushq %rax\n";
     exp->right->accept(this);
@@ -368,6 +485,11 @@ int GenCodeVisitor::visit(PrintStm* stm) {
     if (stringExp) {
         out << " movq %rax, %rsi\n"; 
         out << " leaq print_fmt_str(%rip), %rdi\n"; 
+        out << " movl $0, %eax\n";
+    } else if (stm->e->inferredType && (stm->e->inferredType->ttype == Type::DOUBLE || stm->e->inferredType->ttype == Type::FLOAT)) {
+        out << " movq %rax, %xmm0\n"; 
+        out << " leaq print_fmt_float(%rip), %rdi\n"; 
+        out << " movl $1, %eax\n";
     } else {
         // Ensure value is sign-extended to 64-bit for printf
         int size = getTypeSize(stm->e->inferredType);
@@ -377,10 +499,10 @@ int GenCodeVisitor::visit(PrintStm* stm) {
         else out << " movq %rax, %rsi\n"; 
         
         out << " leaq print_fmt_num(%rip), %rdi\n"; 
+        out << " movl $0, %eax\n";
     }
     
-    out << " movl $0, %eax\n"
-        << " call printf@PLT\n";
+    out << " call printf@PLT\n";
     return 0;
 }
 
@@ -525,6 +647,7 @@ int GenCodeVisitor::visit(ForStmt* stm) {
 }
 
 int GenCodeVisitor::visit(FunDec* f) {
+    entornoFuncion = true; // Set function context
     offset = -8;
     nombreFuncion = f->nombre;
     vector<std::string> argRegs = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"}; // Base names
@@ -590,6 +713,65 @@ int GenCodeVisitor::visit(ReturnStm* stm) {
 }
 
 int GenCodeVisitor::visit(FcallExp* exp) {
+    if (exp->receiver) {
+        // Evaluate receiver first
+        exp->receiver->accept(this);
+
+        Type* targetType = exp->inferredType;
+        Type* sourceType = exp->receiver->inferredType;
+        int targetSize = getTypeSize(targetType);
+        int sourceSize = getTypeSize(sourceType);
+        bool isUnsigned = targetType && (
+            targetType->ttype == Type::UBYTE ||
+            targetType->ttype == Type::USHORT ||
+            targetType->ttype == Type::UINT ||
+            targetType->ttype == Type::ULONG
+        );
+        bool isUnsignedSrc = sourceType && (
+            sourceType->ttype == Type::UBYTE ||
+            sourceType->ttype == Type::USHORT ||
+            sourceType->ttype == Type::UINT ||
+            sourceType->ttype == Type::ULONG
+        );
+
+        // Floating targets: convert integer source to double/float representation in RAX
+        if (targetType && (targetType->ttype == Type::DOUBLE || targetType->ttype == Type::FLOAT)) {
+            // Normalize source to 64 bits before conversion
+            if (isUnsignedSrc) {
+                if (sourceSize == 1) out << " movzbq %al, %rax\n";
+                else if (sourceSize == 2) out << " movzwq %ax, %rax\n";
+                else out << " movl %eax, %eax\n";
+            } else {
+                if (sourceSize == 1) out << " movsbq %al, %rax\n";
+                else if (sourceSize == 2) out << " movswq %ax, %rax\n";
+                else out << " movslq %eax, %rax\n";
+            }
+            out << " cvtsi2sdq %rax, %xmm0\n";
+            out << " movq %xmm0, %rax\n";
+            return 0;
+        }
+
+        // Normalize value in RAX according to the destination type
+        if (targetSize == 1) {
+            out << (isUnsigned ? " movzbq %al, %rax\n" : " movsbq %al, %rax\n");
+        } else if (targetSize == 2) {
+            out << (isUnsigned ? " movzwq %ax, %rax\n" : " movswq %ax, %rax\n");
+        } else if (targetSize == 4) {
+            out << (isUnsigned ? " movl %eax, %eax\n" : " movslq %eax, %rax\n");
+        } else { // targetSize == 8
+            if (isUnsigned) {
+                if (sourceSize == 1) out << " movzbq %al, %rax\n";
+                else if (sourceSize == 2) out << " movzwq %ax, %rax\n";
+                else out << " movl %eax, %eax\n";
+            } else {
+                if (sourceSize == 1) out << " movsbq %al, %rax\n";
+                else if (sourceSize == 2) out << " movswq %ax, %rax\n";
+                else out << " movslq %eax, %rax\n";
+            }
+        }
+        return 0;
+    }
+
     vector<std::string> argRegs = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"}; // Base names
     int size = exp->argumentos.size();
     

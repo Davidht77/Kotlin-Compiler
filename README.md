@@ -70,13 +70,18 @@ Multiplicative  ::= Unary (("*"|"/"|"%") Unary)*
 
 Unary           ::= ("+"|"-"|"!") Unary | Primary
 
-Primary         ::= id
+Primary         ::= Atom Postfix*
+
+Atom            ::= id
                  | Num
                  | Bool
+                 | String
                  | "(" Exp ")"
-                 | FunctionCall
 
-FunctionCall    ::= id "(" ArgListOpt ")"
+Postfix         ::= "(" ArgListOpt ")"        // llamada tipo f(...)
+                 | "." id CallArgsOpt         // llamada con receptor e.g. 100.toByte()
+
+CallArgsOpt     ::= "(" ArgListOpt ")" | ε
 
 ArgListOpt      ::= (Exp ("," Exp)*) | ε
 
@@ -84,7 +89,7 @@ StmtTerminator  ::= ";" | Newline
 
 ## Extensiones del lenguaje implementadas
 
-- Conversión y promoción de tipos (.toString(), .toInt(), .toDouble(), .toLong(), etc)
+- Conversión y promoción de tipos (.toString(), .toInt(), .toDouble(), .toLong(), .toByte(), etc)
 - Inferencia de tipos (var x = 5; var y = 5.0; var z = true;)
 - Tipos numericos (float, double, int, long, unsigned int, unsigned long)
 

@@ -25,7 +25,9 @@ public:
     }
 
     bool isNumeric() const {
-        return (ttype >= INT && ttype <= ULONG); // Based on enum order
+        return ttype == INT || ttype == BYTE || ttype == SHORT || ttype == LONG ||
+               ttype == UBYTE || ttype == USHORT || ttype == UINT || ttype == ULONG ||
+               ttype == FLOAT || ttype == DOUBLE;
     }
 
     bool canAssignTo(Type* target) const {

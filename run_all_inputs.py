@@ -39,7 +39,7 @@ for i in range(1, 8):
         print(f"Ejecutando {filename}")
         
         # Ejecutar Main
-        run_cmd = ["./a.out", filepath]
+        run_cmd = ["./main.exe", filepath]
         result_run = subprocess.run(run_cmd, capture_output=True, text=True)
         
         # Archivos generados por Main

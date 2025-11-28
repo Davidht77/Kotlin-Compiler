@@ -40,11 +40,24 @@ Token* Scanner::nextToken() {
     char c = input[current];
     first = current; // Guardar la posición de inicio del posible token
 
-    // 3. Números
+    // 3. Números (Enteros y Flotantes)
     if (isdigit(c)) {
         current++;
         while (current < input.length() && isdigit(input[current]))
             current++;
+        
+        // Verificar si hay un punto decimal
+        if (current < input.length() && input[current] == '.') {
+            current++; // Consumir el punto
+            // Leer la parte fraccionaria
+            while (current < input.length() && isdigit(input[current]))
+                current++;
+            // Es un número flotante (Double)
+            // Nota: Token::NUM se usa para ambos por ahora, el parser decidirá o se puede añadir Token::DOUBLE
+            // Si quieres distinguirlos en el scanner, necesitarías un nuevo tipo de token.
+            // Por ahora, asumiremos que Token::NUM maneja el string completo y el parser lo convierte.
+        }
+        
         token = new Token(Token::NUM, input, first, current - first);
     }
     
