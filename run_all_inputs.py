@@ -40,8 +40,8 @@ for i in range(1, 7):
         
         # Ejecutar Main
         run_cmd = ["./a.out", filepath]
-        subprocess.run(run_cmd, capture_output=True, text=True)
-
+        result_run = subprocess.run(run_cmd, capture_output=True, text=True)
+        
         # Archivos generados por Main
         tokens_file = os.path.join(input_dir, f"input{i}.s")
         if os.path.isfile(tokens_file):

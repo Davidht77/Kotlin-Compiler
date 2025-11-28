@@ -164,9 +164,21 @@ Type* TypeChecker::visit(VarDec* v) {
             cerr << "Error: variable '" << v->name << "' sin tipo ni inicializador." << endl;
             exit(0);
         }
-    } else if (!t->set_basic_type(v->type)) { // Changed from v->tipo to v->type
-        cerr << "Error: tipo de variable no válido." << endl;
+    } else if (!t->set_basic_type(v->type)) {
+        cerr << "Error: tipo de variable no válido: '" << v->type << "'" << endl;
+        // Debug: print ascii values
+        cerr << "Debug: ";
+        for (char c : v->type) cerr << (int)c << " ";
+        cerr << endl;
         exit(0);
+    }
+
+    if (!v->type.empty() && v->init) {
+        Type* initType = v->init->accept(this);
+        if (!initType->canAssignTo(t)) {
+             cerr << "Error: tipo de inicializador incompatible con variable '" << v->name << "'." << endl;
+             exit(0);
+        }
     }
 
     if (env.check(v->name)) { // Changed from v->variables loop to v->name
@@ -197,11 +209,6 @@ Type* TypeChecker::visit(FunDec* f) {
         }
         env.add_var(f->Pnombres[i], pt); // Changed from Nparametros to Pnombres
         
-        // Parameters also count as local variables for stack offset purposes in some architectures,
-        // but usually they are passed in registers or stack above RBP. 
-        // For GenCodeVisitor logic, they are assigned offsets if they spill or if we want to be safe.
-        // Let's check GenCodeVisitor::visit(FunDec). 
-        // It assigns offsets to parameters too! So we should count them.
         currentVarCount++;
     }
     functionVarCounts[currentFunction] = currentVarCount;
@@ -240,7 +247,7 @@ Type* TypeChecker::visit(AssignExp* stm) { // Changed from AssignStm
     Type* varType = env.lookup(stm->id);
     Type* expType = stm->e->accept(this);
 
-    if (!varType->match(expType)) {
+    if (!expType->canAssignTo(varType)) {
         cerr << "Error: tipos incompatibles en asignación a '" << stm->id << "'." << endl;
         exit(0);
     }
@@ -257,7 +264,7 @@ Type* TypeChecker::visit(ReturnStm* stm) {
         // Note: Strict return type checking against function signature can be added here
         // but keeping it simple as per original code structure, just checking validity of type itself.
         // Actually original code checked against 'retornodefuncion'.
-        if (!(t->match(retornodefuncion))) {
+        if (!(t->canAssignTo(retornodefuncion))) {
              cerr << "Error: retorno distinto al declarado en la función." << endl;
              exit(0);
         }
@@ -294,10 +301,6 @@ Type* TypeChecker::visit(IfStmt* stm) {
 }
 
 Type* TypeChecker::visit(ForStmt* stm) {
-    // Simplified For check: assuming range is int
-    // In a full implementation, we'd check if rangeExp is a Range/DownTo expression
-    // and if the variable is declared or needs to be added to env.
-    // For now, let's assume the loop variable is a new local int.
     
     env.add_level();
     env.add_var(stm->varName, intType);
@@ -333,25 +336,31 @@ Type* TypeChecker::visit(BinaryExp* e) {
         case DIV_OP: 
         case POW_OP:
         case MOD_OP: // Added MOD_OP
-            if (!(left->match(intType) && right->match(intType))) {
-                cerr << "Error: operación aritmética requiere operandos int." << endl;
+            // Allow all numeric types
+            if (!((left->ttype >= Type::INT && left->ttype <= Type::ULONG) && 
+                  (right->ttype >= Type::INT && right->ttype <= Type::ULONG))) {
+                cerr << "Error: operación aritmética requiere operandos numéricos." << endl;
                 exit(0);
             }
-            return intType;
+            // Simplified: return intType for everything or left type.
+            return left; 
         case LE_OP:
         case LT_OP:
         case GT_OP:
         case GE_OP:
         case EQ_OP:
         case NE_OP:
-            if (!((left->match(intType) && right->match(intType)) || (left->match(boolType) && right->match(boolType)))) {
-                 // Allow comparison of ints or bools
-                 // For stricter typing, maybe only ints for <, >, etc.
-                 // But == and != should work for both.
-                 // Keeping it simple: if types match, it's ok.
+            if (!((left->ttype >= Type::INT && left->ttype <= Type::ULONG) && 
+                  (right->ttype >= Type::INT && right->ttype <= Type::ULONG)) &&
+                !((left->match(boolType) && right->match(boolType)))) {
+                 // Allow comparison of numbers or bools
                  if (!left->match(right)) {
-                    cerr << "Error: tipos incompatibles en comparación." << endl;
-                    exit(0);
+                    // Relaxed check for numbers?
+                    if (!((left->ttype >= Type::INT && left->ttype <= Type::ULONG) && 
+                          (right->ttype >= Type::INT && right->ttype <= Type::ULONG))) {
+                        cerr << "Error: tipos incompatibles en comparación." << endl;
+                        exit(0);
+                    }
                  }
             }
             return boolType;
@@ -366,10 +375,15 @@ Type* TypeChecker::visit(BinaryExp* e) {
             
         case RANGE_OP:
         case DOWNTO_OP:
+             if (!(left->isNumeric() && right->isNumeric())) {
+                cerr << "Error: rango requiere operandos numéricos." << endl;
+                exit(0);
+             }
+             return rangeType;
+
         case STEP_OP:
-             // These return a Range type ideally, but for now let's say they are valid if operands are int
-             if (!(left->match(intType) && right->match(intType))) {
-                cerr << "Error: rango requiere operandos int." << endl;
+             if (!((left->match(rangeType) || left->isNumeric()) && right->isNumeric())) {
+                cerr << "Error: step requiere un rango (o número) y un paso numérico." << endl;
                 exit(0);
              }
              return rangeType;
@@ -400,7 +414,6 @@ Type* TypeChecker::visit(FcallExp* e) {
         cerr << "Error: llamada a función no declarada '" << e->nombre << "'." << endl;
         exit(0);
     }
-    // Check arguments?
-    // For full type checking, we should verify argument types match parameter types.
+
     return it->second;
 }

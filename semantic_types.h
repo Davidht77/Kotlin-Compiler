@@ -11,8 +11,8 @@ using namespace std;
 
 class Type {
 public:
-    enum TType { NOTYPE, VOID, INT, BOOL, STRING, RANGE };
-    static const char* type_names[6];
+    enum TType { NOTYPE, VOID, INT, BOOL, STRING, RANGE, BYTE, SHORT, LONG, FLOAT, DOUBLE, UBYTE, USHORT, UINT, ULONG };
+    static const char* type_names[15];
 
     TType ttype;
 
@@ -22,6 +22,20 @@ public:
     // Comparación de tipos
     bool match(Type* t) const {
         return this->ttype == t->ttype;
+    }
+
+    bool isNumeric() const {
+        return (ttype >= INT && ttype <= ULONG); // Based on enum order
+    }
+
+    bool canAssignTo(Type* target) const {
+        if (match(target)) return true;
+        // Allow assigning int literal (which is usually inferred as INT) to other numeric types
+        // For simplicity, allow any numeric to numeric assignment for now, 
+        // or implement strict widening.
+        // Let's allow any numeric to any numeric to avoid "10" (Int) failing for Byte.
+        if (this->isNumeric() && target->isNumeric()) return true;
+        return false;
     }
 
     // Asignación de tipo básico desde string
@@ -38,12 +52,21 @@ public:
         if (s == "bool" || s == "Bool") return BOOL;
         if (s == "void" || s == "Void") return VOID;
         if (s == "string" || s == "String") return STRING;
+        if (s == "Byte") return BYTE;
+        if (s == "Short") return SHORT;
+        if (s == "Long") return LONG;
+        if (s == "Float") return FLOAT;
+        if (s == "Double") return DOUBLE;
+        if (s == "UByte") return UBYTE;
+        if (s == "UShort") return USHORT;
+        if (s == "UInt") return UINT;
+        if (s == "ULong") return ULONG;
         return NOTYPE;
     }
 
 
 };
 
-inline const char* Type::type_names[6] = { "notype", "void", "int", "bool", "string", "range" };
+inline const char* Type::type_names[15] = { "notype", "void", "Int", "bool", "string", "range", "byte", "short", "long", "float", "double", "ubyte", "ushort", "uint", "ulong" };
 
 #endif // SEMANTIC_TYPES_H

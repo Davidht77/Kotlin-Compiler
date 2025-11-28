@@ -1,5 +1,5 @@
-var x = 10
-var y = 5
+var x: Int = 10
+var y: Int = 5
 
 fun add(a: Int, b: Int): Int {
     return a + b
