@@ -1,7 +1,7 @@
 #ifndef VISITOR_H
 #define VISITOR_H
 #include "ast.h"
-#include "environment.h" // Added
+#include "environment.h" // Agregado
 #include <list>
 #include <vector>
 #include <unordered_map>
@@ -24,17 +24,17 @@ class ReturnStm;
 class FunDec;
 class ForStmt;   
 class IdExp;
-class StringExp; // Declaración de StringExp (NUEVO)
-class DoubleExp; // Declaración de DoubleExp (NUEVO)
+class StringExp; // Declaración de StringExp
+class DoubleExp; // Declaración de DoubleExp
 
 class Visitor {
 public:
     virtual int visit(BinaryExp* exp) = 0;
     virtual int visit(NumberExp* exp) = 0;
-    virtual int visit(DoubleExp* exp) = 0; // Método para DoubleExp (NUEVO)
+    virtual int visit(DoubleExp* exp) = 0; // Método para DoubleExp
     virtual int visit(BoolExp* exp) = 0; 
     virtual int visit(IdExp* exp) = 0;
-    virtual int visit(StringExp* exp) = 0; // Método para StringExp (NUEVO)
+    virtual int visit(StringExp* exp) = 0; // Método para StringExp
     virtual int visit(Program* p) = 0;
     virtual int visit(PrintStm* stm) = 0;
     virtual int visit(WhileStmt* stm) = 0;
@@ -52,31 +52,31 @@ public:
 class GenCodeVisitor : public Visitor {
 private:
     std::ostream& out;
-    unordered_map<string, int> functionVarCounts; // Added
+    unordered_map<string, int> functionVarCounts; // Agregado
 
 public:
-    GenCodeVisitor(std::ostream& out, unordered_map<string, int> counts) : out(out), functionVarCounts(counts) {} // Updated constructor
+    GenCodeVisitor(std::ostream& out, unordered_map<string, int> counts) : out(out), functionVarCounts(counts) {}
     int generar(Program* program);
 
     // Contexto de generación de código
-    Environment<int> env; // lo que antes era memoria
+    Environment<int> env; // Memoria de offsets
     unordered_map<string, bool> memoriaGlobal;
     unordered_map<string, Type*> tiposGlobales;
-    Environment<Type*> typeEnv; // tipos locales
-    unordered_map<string, string> stringLiterals; // Para gestionar strings y sus etiquetas (NUEVO)
-    int stringCont = 0; // Contador de etiquetas de strings (NUEVO)
+    Environment<Type*> typeEnv; // Tipos locales
+    unordered_map<string, string> stringLiterals; // Pool de strings y etiquetas
+    int stringCont = 0; // Contador de etiquetas de strings
     int offset = -8;
     int labelcont = 0;
     bool entornoFuncion = false;
     string nombreFuncion;
 
-    // Métodos de visita (Implementación de la interfaz Visitor)
+    // Métodos de visita
     int visit(BinaryExp* exp) override;
     int visit(NumberExp* exp) override;
-    int visit(DoubleExp* exp) override; // Implementación de DoubleExp (NUEVO)
+    int visit(DoubleExp* exp) override;
     int visit(BoolExp* exp) override;
     int visit(IdExp* exp) override;
-    int visit(StringExp* exp) override; // Implementación de StringExp (NUEVO)
+    int visit(StringExp* exp) override;
     int visit(Program* p) override ;
     int visit(PrintStm* stm) override;
     int visit(WhileStmt* stm) override;

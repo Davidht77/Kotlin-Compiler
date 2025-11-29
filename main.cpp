@@ -58,7 +58,7 @@ int main(int argc, const char* argv[]) {
         }
     cout << "Parseo exitoso" << endl;
 
-    // Type Checking and Variable Counting
+    // Revisión de tipos y conteo de variables
     cout << "Iniciando TypeChecker..." << endl;
     TypeChecker typeChecker;
     typeChecker.typecheck(program);

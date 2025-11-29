@@ -11,46 +11,46 @@ using namespace std;
 
 class BinaryExp;
 class NumberExp;
-class DoubleExp; // Added
+class DoubleExp; // Agregado
 class Program;
 class PrintStm;
-class AssignExp; // Changed from AssignStm
+class AssignExp; // Cambiado desde AssignStm
 class FunDec;
 class ReturnStm;
-class Block; // Changed from Body
+class Block; // Cambiado desde Body
 class VarDec;
 class FcallExp;
 class BoolExp;
-class WhileStmt; // Added
-class IfStmt;    // Added
-class ForStmt;   // Added
-class StringExp; // Added
+class WhileStmt; // Agregado
+class IfStmt;    // Agregado
+class ForStmt;   // Agregado
+class StringExp; // Agregado
 
 class TypeVisitor {
 public:
 
     // --- Nodos de nivel superior ---
     virtual Type* visit(Program* p) = 0;
-    virtual Type* visit(Block* b) = 0; // Changed from Body
+    virtual Type* visit(Block* b) = 0; // Cambiado desde Body
     virtual Type* visit(VarDec* v) = 0;
     virtual Type* visit(FunDec* f) = 0;
 
     // --- Sentencias ---
     virtual Type* visit(PrintStm* stm) = 0;
-    virtual Type* visit(AssignExp* stm) = 0; // Changed from AssignStm
+    virtual Type* visit(AssignExp* stm) = 0; // Cambiado desde AssignStm
     virtual Type* visit(ReturnStm* stm) = 0;
-    virtual Type* visit(WhileStmt* stm) = 0; // Added
-    virtual Type* visit(IfStmt* stm) = 0;    // Added
-    virtual Type* visit(ForStmt* stm) = 0;   // Added
+    virtual Type* visit(WhileStmt* stm) = 0; // Agregado
+    virtual Type* visit(IfStmt* stm) = 0;    // Agregado
+    virtual Type* visit(ForStmt* stm) = 0;   // Agregado
 
     // --- Expresiones ---
     virtual Type* visit(BinaryExp* e) = 0;
     virtual Type* visit(NumberExp* e) = 0;
-    virtual Type* visit(DoubleExp* e) = 0; // Added
+    virtual Type* visit(DoubleExp* e) = 0; // Agregado
     virtual Type* visit(IdExp* e) = 0;
     virtual Type* visit(BoolExp* e) = 0;
     virtual Type* visit(FcallExp* e) = 0;
-    virtual Type* visit(StringExp* e) = 0; // Added
+    virtual Type* visit(StringExp* e) = 0; // Agregado
 };
 
 
@@ -68,8 +68,8 @@ private:
     Type* intType;
     Type* boolType;
     Type* voidType;
-    Type* stringType; // Added
-    Type* rangeType; // Added
+    Type* stringType; // Agregado
+    Type* rangeType; // Agregado
     Type* retornodefuncion;
     // Registro de funciones
     void add_function(FunDec* fd);
@@ -99,18 +99,18 @@ public:
     Type* visit(PrintStm* stm) override;
     Type* visit(AssignExp* stm) override; // Changed from AssignStm
     Type* visit(ReturnStm* stm) override;
-    Type* visit(WhileStmt* stm) override; // Added
-    Type* visit(IfStmt* stm) override;    // Added
-    Type* visit(ForStmt* stm) override;   // Added
+    Type* visit(WhileStmt* stm) override; // Agregado
+    Type* visit(IfStmt* stm) override;    // Agregado
+    Type* visit(ForStmt* stm) override;   // Agregado
 
     // --- Expresiones ---
     Type* visit(BinaryExp* e) override;
     Type* visit(NumberExp* e) override;
-    Type* visit(DoubleExp* e) override; // Added
+    Type* visit(DoubleExp* e) override; // Agregado
     Type* visit(IdExp* e) override;
     Type* visit(BoolExp* e) override;
     Type* visit(FcallExp* e) override;
-    Type* visit(StringExp* e) override; // Added
+    Type* visit(StringExp* e) override; // Agregado
 };
 
-#endif // TYPECHECKER_H
+#endif TYPECHECKER_H

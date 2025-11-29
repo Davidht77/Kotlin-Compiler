@@ -10,7 +10,7 @@
 #include <string>
 using namespace std;
 
-// Helper to get register name based on size
+// Ayuda para obtener el nombre de registro según el tamaño
 string getReg(string baseReg, int size) {
     if (baseReg == "rax" || baseReg == "%rax") {
         if (size == 1) return "%al";
@@ -64,7 +64,7 @@ string getReg(string baseReg, int size) {
     return (baseReg[0] == '%' ? "" : "%") + baseReg;
 }
 
-// Helper to get instruction suffix
+// Ayuda para obtener el sufijo de instrucción
 string getSuffix(int size) {
     if (size == 1) return "b";
     if (size == 2) return "w";
@@ -73,7 +73,7 @@ string getSuffix(int size) {
 }
 
 int getTypeSize(Type* t) {
-    if (!t) return 8; // Default to 64-bit if unknown
+    if (!t) return 8; // Por defecto 64 bits si se desconoce
     if (t->ttype == Type::BYTE || t->ttype == Type::UBYTE) return 1;
     if (t->ttype == Type::SHORT || t->ttype == Type::USHORT) return 2;
 
@@ -82,10 +82,10 @@ int getTypeSize(Type* t) {
     if (t->ttype == Type::DOUBLE) return 8;
     if (t->ttype == Type::LONG || t->ttype == Type::ULONG) return 8;
     if (t->ttype == Type::BOOL) return 1; // Bool as byte
-    return 8; // Default
+    return 8; // Valor por defecto
 }
 
-// Convertir el valor en RAX a un tipo destino, dejando el resultado en RAX/EAX
+// Convertir el valor en RAX al tipo destino, dejando el resultado en RAX/EAX
 static void convertValueTo(Type* src, Type* dst, ostream& out) {
     if (!src || !dst || src->ttype == dst->ttype) return;
 
@@ -275,7 +275,7 @@ int GenCodeVisitor::visit(Program* program) {
     // 1. Sección de datos
     out << ".data\n";
     out << "print_fmt_num: .string \"%ld \\n\""<<endl;
-    out << "print_fmt_float: .string \"%f\\n\""<<endl; // Added float format
+    out << "print_fmt_float: .string \"%f\\n\""<<endl; // Formato para flotantes
     out << "print_fmt_str: .string \"%s\\n\""<<endl;
 
     // A. Recorrer VarDecs Globales para registrarlas y definirlas estáticamente.
@@ -397,7 +397,7 @@ int GenCodeVisitor::visit(VarDec* stm) {
         }
         return 0; 
     } else { 
-        // Use Environment for local variables
+        // Usa el entorno para variables locales
         env.add_var(var, offset);
         Type* destType = nullptr;
         if (!stm->type.empty()) {
@@ -586,7 +586,7 @@ int GenCodeVisitor::visit(BinaryExp* exp) {
                     << " setne %al\n" 
                     << " movzbq %al, %rax\n";
                 return 0;
-            default: out << " # Operator not supported for doubles yet\n"; break;
+            default: out << " # Operador no soportado para doubles\n"; break;
         }
         
         // Result is in XMM0. Convert to float if needed.
@@ -612,7 +612,7 @@ int GenCodeVisitor::visit(BinaryExp* exp) {
         out << " xchgq %rax, %rcx\n"; // asegurar rax=izq, rcx=der
     }
 
-    int size = getTypeSize(exp->inferredType); // Use result type size
+    int size = getTypeSize(exp->inferredType); // Usar tamaño del tipo resultante
     string suffix = getSuffix(size);
     string regAx = getReg("rax", size);
     string regCx = getReg("rcx", size);
@@ -720,7 +720,7 @@ int GenCodeVisitor::visit(PrintStm* stm) {
         out << " leaq print_fmt_float(%rip), %rdi\n"; 
         out << " movl $1, %eax\n";
     } else {
-        // Ensure value is sign-extended to 64-bit for printf
+        // Asegurar extensión de signo a 64 bits para printf
         int size = getTypeSize(stm->e->inferredType);
         if (size == 1) out << " movsbq %al, %rsi\n";
         else if (size == 2) out << " movswq %ax, %rsi\n";
@@ -736,12 +736,12 @@ int GenCodeVisitor::visit(PrintStm* stm) {
 }
 
 int GenCodeVisitor::visit(Block* b) {
-    env.add_level(); // New scope
+    env.add_level(); // Nuevo alcance
     typeEnv.add_level();
     for (auto s : b->stmts){
         s->accept(this);
     }
-    env.remove_level(); // End scope
+    env.remove_level(); // Fin de alcance
     typeEnv.remove_level();
     return 0;
 }
@@ -895,7 +895,7 @@ int GenCodeVisitor::visit(FunDec* f) {
     entornoFuncion = true; // Set function context
     offset = -8;
     nombreFuncion = f->nombre;
-    vector<std::string> argRegs = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"}; // Base names
+    vector<std::string> argRegs = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"}; // Registros base
     out << ".globl " << f->nombre << endl;
     out <<f->nombre<<":" << endl;
     out << " pushq %rbp" << endl;
@@ -918,25 +918,25 @@ int GenCodeVisitor::visit(FunDec* f) {
         if (i < argRegs.size()) {
             out << " mov" << suffix << " " << reg << "," << offset << "(%rbp)" << endl;
         } else {
-            // Stack arguments are always 8 bytes on x86-64
+            // Los argumentos en la pila son de 8 bytes en x86-64
             int arg_stack_pos = 16 + (i - (int)argRegs.size()) * 8; 
-            out << " movq " << arg_stack_pos << "(%rbp), %rax\n"; // Read 8 bytes from stack
-            // Store to local variable, potentially smaller size
+            out << " movq " << arg_stack_pos << "(%rbp), %rax\n"; // Leer 8 bytes de la pila
+            // Guardar en variable local, posiblemente de menor tamaño
             string regAx = getReg("rax", argSize);
             out << " mov" << suffix << " " << regAx << ", " << offset << "(%rbp)" << endl;
         }
         offset -= 8;
     }
     
-    // Calculate reservation based on variable count
+    // Calcular la reserva según la cantidad de variables
     int numVars = 0;
     if (functionVarCounts.count(f->nombre)) {
         numVars = functionVarCounts[f->nombre];
     } else {
-        numVars = 16; // Default fallback
+        numVars = 16; // Valor por defecto
     }
 
-    int reserva = (numVars * 8 + 15) / 16 * 16; // Round up to multiple of 16
+    int reserva = (numVars * 8 + 15) / 16 * 16; // Redondear al múltiplo de 16
     
     out << " subq $" << reserva << ", %rsp" << endl;
     
@@ -1051,7 +1051,7 @@ int GenCodeVisitor::visit(FcallExp* exp) {
         return 0;
     }
 
-    vector<std::string> argRegs = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"}; // Base names
+    vector<std::string> argRegs = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"}; // Registros base
     int size = exp->argumentos.size();
     
     int num_stack_args = max(0, size - (int)argRegs.size());

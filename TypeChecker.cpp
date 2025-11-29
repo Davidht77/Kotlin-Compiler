@@ -10,18 +10,18 @@ Type* BoolExp::accept(TypeVisitor* v) { return v->visit(this); }
 Type* IdExp::accept(TypeVisitor* v) { return v->visit(this); }
 Type* BinaryExp::accept(TypeVisitor* v) { return v->visit(this); }
 Type* FcallExp::accept(TypeVisitor* v) { return v->visit(this); }
-Type* StringExp::accept(TypeVisitor* v) { return v->visit(this); } // Added
+Type* StringExp::accept(TypeVisitor* v) { return v->visit(this); } // Agregado
 
-Type* AssignExp::accept(TypeVisitor* v) { return v->visit(this); } // Changed from AssignStm
+Type* AssignExp::accept(TypeVisitor* v) { return v->visit(this); } // Cambiado desde AssignStm
 Type* PrintStm::accept(TypeVisitor* v) { return v->visit(this); }
 Type* ReturnStm::accept(TypeVisitor* v) { return v->visit(this); }
-Type* WhileStmt::accept(TypeVisitor* v) { return v->visit(this); } // Added
-Type* IfStmt::accept(TypeVisitor* v) { return v->visit(this); }    // Added
-Type* ForStmt::accept(TypeVisitor* v) { return v->visit(this); }   // Added
+Type* WhileStmt::accept(TypeVisitor* v) { return v->visit(this); } // Agregado
+Type* IfStmt::accept(TypeVisitor* v) { return v->visit(this); }    // Agregado
+Type* ForStmt::accept(TypeVisitor* v) { return v->visit(this); }   // Agregado
 
 Type* VarDec::accept(TypeVisitor* v) { return v->visit(this); }
 Type* FunDec::accept(TypeVisitor* v) { return v->visit(this); }
-Type* Block::accept(TypeVisitor* v) { return v->visit(this); } // Changed from Body
+Type* Block::accept(TypeVisitor* v) { return v->visit(this); } // Cambiado desde Body
 Type* Program::accept(TypeVisitor* v) { return v->visit(this); }
 
 // ===========================================================
@@ -32,8 +32,8 @@ TypeChecker::TypeChecker() {
     intType = new Type(Type::INT);
     boolType = new Type(Type::BOOL);
     voidType = new Type(Type::VOID);
-    stringType = new Type(Type::STRING); // Added
-    rangeType = new Type(Type::RANGE); // Added
+    stringType = new Type(Type::STRING); // Agregado
+    rangeType = new Type(Type::RANGE); // Agregado
     currentVarCount = 0;
 }
 
@@ -41,7 +41,7 @@ TypeChecker::TypeChecker() {
 //   Registrar funciones globales
 // ===========================================================
 
-// Helper to infer return type from function body
+// Ayuda para inferir tipo de retorno a partir del cuerpo de la función
 Type* TypeChecker::inferReturnType(Stm* s) {
     if (!s) return nullptr;
 
@@ -87,12 +87,12 @@ void TypeChecker::add_function(FunDec* fd) {
 
     Type* returnType = new Type();
     if (fd->tipo.empty()) {
-        // Inference logic
-        // Temporarily add parameters to env to allow expression type checking
+        // Lógica de inferencia
+        // Agrega parámetros al entorno temporalmente para poder revisar tipos en el cuerpo
         env.add_level();
         for (size_t i = 0; i < fd->Pnombres.size(); ++i) {
             Type* pt = new Type();
-             // Assuming parameters must have explicit types for now
+             // Se asume que los parámetros deben tener tipo explícito
              if (fd->Ptipos[i].empty()) {
                  cerr << "Error: parámetros deben tener tipo explícito en función '" << fd->nombre << "'." << endl;
                  exit(0);
@@ -158,7 +158,7 @@ Type* TypeChecker::visit(Block* b) {
 Type* TypeChecker::visit(VarDec* v) {
     Type* t = new Type();
     if (v->type.empty()) {
-        // Inference from initializer
+        // Inferencia desde el inicializador
         if (v->init) {
              t = v->init->accept(this);
         } else {
@@ -167,7 +167,7 @@ Type* TypeChecker::visit(VarDec* v) {
         }
     } else if (!t->set_basic_type(v->type)) {
         cerr << "Error: tipo de variable no válido: '" << v->type << "'" << endl;
-        // Debug: print ascii values
+        // Depuración: imprimir valores ascii
         cerr << "Debug: ";
         for (char c : v->type) cerr << (int)c << " ";
         cerr << endl;
@@ -188,7 +188,7 @@ Type* TypeChecker::visit(VarDec* v) {
     }
     env.add_var(v->name, t);
 
-    // Variable counting logic
+    // Lógica de conteo de variables
     if (!currentFunction.empty()) {
         currentVarCount++;
         functionVarCounts[currentFunction] = currentVarCount;
@@ -199,16 +199,16 @@ Type* TypeChecker::visit(VarDec* v) {
 Type* TypeChecker::visit(FunDec* f) {
     currentFunction = f->nombre;
     currentVarCount = 0;
-    functionVarCounts[currentFunction] = 0; // Initialize
+    functionVarCounts[currentFunction] = 0; // Inicializa
 
     env.add_level();
     for (size_t i = 0; i < f->Pnombres.size(); ++i) {
         Type* pt = new Type();
-        if (!pt->set_basic_type(f->Ptipos[i])) { // Changed from Tparametros to Ptipos
+        if (!pt->set_basic_type(f->Ptipos[i])) { // Cambiado de Tparametros a Ptipos
             cerr << "Error: tipo de parámetro inválido en función '" << f->nombre << "'." << endl;
             exit(0);
         }
-        env.add_var(f->Pnombres[i], pt); // Changed from Nparametros to Pnombres
+        env.add_var(f->Pnombres[i], pt); // Cambiado de Nparametros a Pnombres
         
         currentVarCount++;
     }
@@ -216,7 +216,7 @@ Type* TypeChecker::visit(FunDec* f) {
 
     functionVarCounts[currentFunction] = currentVarCount;
 
-    // Use the type already registered in add_function
+    // Usa el tipo ya registrado en add_function
     Type* returnType = functions[f->nombre];
     retornodefuncion = returnType;
     f->cuerpo->accept(this);
@@ -239,7 +239,7 @@ Type* TypeChecker::visit(PrintStm* stm) {
     return voidType;
 }
 
-Type* TypeChecker::visit(AssignExp* stm) { // Changed from AssignStm
+Type* TypeChecker::visit(AssignExp* stm) { // Cambiado desde AssignStm
     if (!env.check(stm->id)) {
         cerr << "Error: variable '" << stm->id << "' no declarada." << endl;
         exit(0);
@@ -262,9 +262,8 @@ Type* TypeChecker::visit(ReturnStm* stm) {
             cerr << "Error: tipo inválido en return." << endl;
             exit(0);
         }
-        // Note: Strict return type checking against function signature can be added here
-        // but keeping it simple as per original code structure, just checking validity of type itself.
-        // Actually original code checked against 'retornodefuncion'.
+        // Nota: se podría comparar estrictamente con el tipo declarado de la función.
+        // Aquí se valida solo la compatibilidad general. El original revisaba contra 'retornodefuncion'.
         if (!(t->canAssignTo(retornodefuncion))) {
              cerr << "Error: retorno distinto al declarado en la función." << endl;
              exit(0);
@@ -338,7 +337,7 @@ Type* TypeChecker::visit(BinaryExp* e) {
         case DIV_OP: 
         case POW_OP:
         case MOD_OP: 
-            // Allow all numeric types
+            // Permitir todos los tipos numéricos
             if (!((left->isNumeric()) && (right->isNumeric()))) {
                 cerr << "Error: operación aritmética requiere operandos numéricos." << endl;
                 exit(0);
@@ -379,7 +378,7 @@ Type* TypeChecker::visit(BinaryExp* e) {
             if (!((left->ttype >= Type::INT && left->ttype <= Type::ULONG) && 
                   (right->ttype >= Type::INT && right->ttype <= Type::ULONG)) &&
                 !((left->match(boolType) && right->match(boolType)))) {
-                 // Allow comparison of numbers or bools
+                 // Permitir comparación de números o bools
                  if (!left->match(right)) {
                     // Relaxed check for numbers?
                     if (!((left->ttype >= Type::INT && left->ttype <= Type::ULONG) && 

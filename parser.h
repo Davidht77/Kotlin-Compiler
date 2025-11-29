@@ -20,8 +20,8 @@ public:
     Block* parseBlock();
     Stm* parseStmt();
     
-    // Expression parsing hierarchy
-    Exp* parseExp();        // Assignment
+    // Jerarquía de parsers de expresión
+    Exp* parseExp();        // Asignación
     Exp* parseLogicOr();    // ||
     Exp* parseLogicAnd();   // &&
     Exp* parseEquality();   // ==, !=
@@ -30,7 +30,7 @@ public:
     Exp* parseAdditive();   // +, -
     Exp* parseMultiplicative(); // *, /, %
     Exp* parseUnary();      // +, -, !
-    Exp* parsePrimary();    // id, num, bool, (), call
+    Exp* parsePrimary();    // id, num, bool, (), llamada
 };
 
 #endif // PARSER_H

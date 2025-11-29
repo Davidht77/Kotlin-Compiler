@@ -9,8 +9,8 @@ using namespace std;
 
 class Visitor;
 class VarDec;
-class Type; // Forward declaration for Type
-class TypeVisitor; // Forward declaration for TypeVisitor
+class Type; // Declaración adelantada de Type
+class TypeVisitor; // Declaración adelantada de TypeVisitor
 
 // Operadores binarios soportados
 enum BinaryOp { 
@@ -36,12 +36,12 @@ enum BinaryOp {
 class Stm{
 public:
     virtual int accept(Visitor* visitor) = 0;
-    virtual Type* accept(TypeVisitor* visitor) = 0; // Added
+    virtual Type* accept(TypeVisitor* visitor) = 0; // Agregado
     virtual ~Stm() = 0;
 };
 
 // Clase abstracta Exp
-class Exp : public Stm { // Exp inherits from Stm
+class Exp : public Stm { // Exp hereda de Stm
 public:
     virtual int  accept(Visitor* visitor) = 0;
     virtual ~Exp() = 0;  // Destructor puro → clase abstracta
@@ -117,7 +117,7 @@ public:
 };
 
 
-class VarDec : public Stm { // Inherit from Stm to allow VarDec in StmtList
+class VarDec : public Stm { // Hereda de Stm para permitir VarDec en listas de sentencias
 public:
     string type;
     string name; 
@@ -171,7 +171,7 @@ public:
     ~ForStmt(){};
 };
 
-class AssignExp: public Exp { // Renamed from AssignStm and inherits Exp
+class AssignExp: public Exp { // Renombrada desde AssignStm y hereda de Exp
 public:
     string id;
     Exp* e;
@@ -203,7 +203,7 @@ class FcallExp: public Exp {
 public:
     string nombre;
     vector<Exp*> argumentos;
-    Exp* receiver; // Optional receiver for method-style calls (e.g., 100.toByte())
+    Exp* receiver; // Receptor opcional para llamadas estilo método (ej. 100.toByte())
     int accept(Visitor* visitor);
     Type* accept(TypeVisitor* visitor); // nuevo
     FcallExp(string nombre, vector<Exp*> args, Exp* receiver = nullptr);

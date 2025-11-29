@@ -58,13 +58,13 @@ bool Parser::isAtEnd() {
 Program* Parser::parseProgram() {
     Program* p = new Program();
     // VarDecList ::= (VarDec)*
-    // We check for starts of VarDec: const, val, var
+    // Se revisa inicio de VarDec: const, val, var
     while (check(Token::CONST) || check(Token::VAL) || check(Token::VAR)) {
         p->vdlist.push_back(parseVarDec());
     }
     
     // FunDecList ::= (FunDec)+
-    // Must have at least one function
+    // Debe haber al menos una función
     if (check(Token::FUN)) {
         p->fdlist.push_back(parseFunDec());
         while (check(Token::FUN)) {
@@ -92,7 +92,7 @@ VarDec* Parser::parseVarDec() {
     if (match(Token::VAL)) {
         if (!isConst) isConst = true; 
     } else if (match(Token::VAR)) {
-        // var is mutable
+        // var es mutable
     } else {
         throw runtime_error("Expected 'val' or 'var'");
     }
@@ -113,7 +113,7 @@ VarDec* Parser::parseVarDec() {
         init = parseExp();
     }
     
-    // StmtTerminator ::= ";" | Newline (we use SEMICOL)
+    // StmtTerminator ::= ";" | salto de línea (se usa SEMICOL)
     match(Token::SEMICOL);
     
     return new VarDec(name, type, init, isConst);
@@ -140,7 +140,7 @@ FunDec* Parser::parseFunDec() {
         if (match(Token::CONST)) paramConst = true;
         if (match(Token::VAL)) { /* val */ }
         else if (match(Token::VAR)) { /* var */ }
-        // else: optional, assume val implicitly
+        // si no: opcional, se asume val implícito
         
         if (!match(Token::ID)) throw runtime_error("Expected parameter name");
         pNames.push_back(previous->text);
@@ -159,7 +159,7 @@ FunDec* Parser::parseFunDec() {
             if (match(Token::CONST)) paramConst = true;
             if (match(Token::VAL)) { /* val */ }
             else if (match(Token::VAR)) { /* var */ }
-            // else: optional
+            // si no: opcional
             
             if (!match(Token::ID)) throw runtime_error("Expected parameter name");
             pNames.push_back(previous->text);
@@ -208,7 +208,7 @@ Stm* Parser::parseStmt() {
         s = parseVarDec();
     }
     else if (match(Token::PRINT) || match(Token::PRINTLN)) {
-        // match(Token::PRINT) or match(Token::PRINTLN) already consumed the token
+        // match(Token::PRINT) o match(Token::PRINTLN) ya consumieron el token
         match(Token::LPAREN);
         Exp* e = nullptr;
         if (!check(Token::RPAREN)) {
@@ -256,11 +256,11 @@ Stm* Parser::parseStmt() {
         s = new ReturnStm(e);
     }
     else {
-        // Exp (Assignment or other expression)
+        // Exp (asignación u otra expresión)
         Exp* e = parseExp();
         if (!e) throw runtime_error("Expected statement or expression");
         match(Token::SEMICOL);
-        s = e; // Exp inherits Stm now
+        s = e; // Exp ahora hereda de Stm
     }
     
     return s;
@@ -438,7 +438,7 @@ Exp* Parser::parsePrimary() {
         throw runtime_error("Expected expression");
     }
 
-    // Postfix: function call or method call (e.g., foo(), 100.toByte())
+    // Postfijos: llamada de función o método (ej. foo(), 100.toByte())
     while (true) {
         if (check(Token::LPAREN)) {
             match(Token::LPAREN);

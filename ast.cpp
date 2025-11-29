@@ -28,7 +28,7 @@ string Exp::binopToChar(BinaryOp op) {
 }
 
 BinaryExp::BinaryExp(Exp* l, Exp* r, BinaryOp op) : left(l), right(r), op(op) {
-    // Constant folding
+    // Plegado de constantes
     if (left && right && left->isnumber && right->isnumber) {
         isnumber = true;
         switch(op) {
@@ -52,7 +52,7 @@ BinaryExp::BinaryExp(Exp* l, Exp* r, BinaryOp op) : left(l), right(r), op(op) {
         valor = 0;
     }
 
-    // Sethi-Ullman weight
+    // Peso Sethi-Ullman
     int le = left ? left->etiqueta : 0;
     int ri = right ? right->etiqueta : 0;
     etiqueta = (le == ri) ? le + 1 : max(le, ri);
@@ -68,7 +68,7 @@ DoubleExp::~DoubleExp() {}
 BoolExp::BoolExp(bool v) : value(v) { isnumber = true; valor = v ? 1 : 0; etiqueta = 0; }
 BoolExp::~BoolExp() {}
 
-// Implementación de StringExp << NUEVO >>
+// Implementación de StringExp
 StringExp::StringExp(string v) : value(v) { isnumber = false; valor = 0; etiqueta = 0; }
 StringExp::~StringExp() {}
 
