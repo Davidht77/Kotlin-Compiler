@@ -4,6 +4,7 @@
 #include "semantic_types.h"
 #include <unordered_map>
 #include <unordered_set>
+
 #include <vector>
 #include <algorithm>
 #include <cstring>
@@ -201,6 +202,10 @@ int NumberExp::accept(Visitor* visitor) {
 
 int DoubleExp::accept(Visitor* visitor) {
     return visitor->visit(this);
+}
+
+int LongExp::accept(Visitor* visitor) { 
+    return visitor->visit(this); 
 }
 
 int BoolExp::accept(Visitor* visitor) {
@@ -429,12 +434,38 @@ int GenCodeVisitor::visit(NumberExp* exp) {
     return 0;
 }
 
+// En visitor.cpp
+#include <cstring> // Necesario para memcpy
+
+// En visitor.cpp
 int GenCodeVisitor::visit(DoubleExp* exp) {
+    std::cerr << "DEBUG: Visitando DoubleExp con valor: " << exp->value << std::endl;
     long long bits;
-    double d = exp->value;
+    double d = exp->value; 
+    
+    cout << d << endl;
+
+    // 1. Obtener la representación binaria (patrón de bits) de 64 bits
+    // Esto es crucial para un literal flotante.
     memcpy(&bits, &d, sizeof(bits));
-    out << " movabsq $" << bits << ", %rax\n";
-    return 0;
+    
+    // 2. Cargar el patrón de bits en RAX usando movabsq (la única forma robusta)
+    out << " movabsq $" << bits << ", %rax\n"; 
+    
+    // 3. Mover el patrón de bits de RAX al registro de coma flotante XMM0
+    out << " movq %rax, %xmm0\n"; 
+    
+    // El resultado queda en %xmm0 (64 bits).
+    return 8; 
+}
+
+// En visitor.cpp
+
+int GenCodeVisitor::visit(LongExp* exp) {
+    // CORRECCIÓN: Usar "\n" en lugar de "\\n" y eliminar el espacio extra
+    out << " movq $" << exp->valor << ", %rax\n"; 
+    
+    return 8; 
 }
 
 int GenCodeVisitor::visit(BoolExp* exp) {
