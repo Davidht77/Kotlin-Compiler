@@ -1,5 +1,6 @@
 .data
 print_fmt_num: .string "%ld \n"
+print_fmt_float: .string "%f\n"
 print_fmt_str: .string "%s\n"
 .text
 .global main
@@ -13,28 +14,28 @@ main:
  leaq print_fmt_str(%rip), %rdi
  movl $0, %eax
  call printf@PLT
- movq $1, %rax
- movq %rax, -8(%rbp)
- movq $5, %rax
- movq %rax, -16(%rbp)
- movq $1, %rax
- movq %rax, -24(%rbp)
- movq -8(%rbp), %rax
- movq %rax, -32(%rbp)
+ movl $1, %eax
+ movl %eax, -8(%rbp)
+ movl $5, %eax
+ movl %eax, -16(%rbp)
+ movl $1, %eax
+ movl %eax, -24(%rbp)
+ movl -8(%rbp), %eax
+ movl %eax, -32(%rbp)
 loop_0:
- movq -32(%rbp), %rax
- movq -16(%rbp), %rcx
- cmpq %rcx, %rax
+ movl -32(%rbp), %eax
+ movl -16(%rbp), %ecx
+ cmpl %ecx, %eax
  jg endloop_0
- movq -32(%rbp), %rax
- movq %rax, %rsi
+ movslq -32(%rbp), %rax
+ movslq %eax, %rsi
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax
  call printf@PLT
- movq -32(%rbp), %rax
- movq -24(%rbp), %rcx
- addq %rcx, %rax
- movq %rax, -32(%rbp)
+ movl -32(%rbp), %eax
+ movl -24(%rbp), %ecx
+ addl %ecx, %eax
+ movl %eax, -32(%rbp)
  jmp loop_0
 endloop_0:
  leaq str_1(%rip), %rax
@@ -42,28 +43,28 @@ endloop_0:
  leaq print_fmt_str(%rip), %rdi
  movl $0, %eax
  call printf@PLT
- movq $1, %rax
- movq %rax, -8(%rbp)
- movq $10, %rax
- movq %rax, -16(%rbp)
- movq $2, %rax
- movq %rax, -24(%rbp)
- movq -8(%rbp), %rax
- movq %rax, -32(%rbp)
+ movl $1, %eax
+ movl %eax, -8(%rbp)
+ movl $10, %eax
+ movl %eax, -16(%rbp)
+ movl $2, %eax
+ movl %eax, -24(%rbp)
+ movl -8(%rbp), %eax
+ movl %eax, -32(%rbp)
 loop_1:
- movq -32(%rbp), %rax
- movq -16(%rbp), %rcx
- cmpq %rcx, %rax
+ movl -32(%rbp), %eax
+ movl -16(%rbp), %ecx
+ cmpl %ecx, %eax
  jg endloop_1
- movq -32(%rbp), %rax
- movq %rax, %rsi
+ movslq -32(%rbp), %rax
+ movslq %eax, %rsi
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax
  call printf@PLT
- movq -32(%rbp), %rax
- movq -24(%rbp), %rcx
- addq %rcx, %rax
- movq %rax, -32(%rbp)
+ movl -32(%rbp), %eax
+ movl -24(%rbp), %ecx
+ addl %ecx, %eax
+ movl %eax, -32(%rbp)
  jmp loop_1
 endloop_1:
  leaq str_2(%rip), %rax
@@ -71,28 +72,28 @@ endloop_1:
  leaq print_fmt_str(%rip), %rdi
  movl $0, %eax
  call printf@PLT
- movq $5, %rax
- movq %rax, -8(%rbp)
- movq $1, %rax
- movq %rax, -16(%rbp)
- movq $1, %rax
- movq %rax, -24(%rbp)
- movq -8(%rbp), %rax
- movq %rax, -32(%rbp)
+ movl $5, %eax
+ movl %eax, -8(%rbp)
+ movl $1, %eax
+ movl %eax, -16(%rbp)
+ movl $1, %eax
+ movl %eax, -24(%rbp)
+ movl -8(%rbp), %eax
+ movl %eax, -32(%rbp)
 loop_2:
- movq -32(%rbp), %rax
- movq -16(%rbp), %rcx
- cmpq %rcx, %rax
+ movl -32(%rbp), %eax
+ movl -16(%rbp), %ecx
+ cmpl %ecx, %eax
  jl endloop_2
- movq -32(%rbp), %rax
- movq %rax, %rsi
+ movslq -32(%rbp), %rax
+ movslq %eax, %rsi
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax
  call printf@PLT
- movq -32(%rbp), %rax
- movq -24(%rbp), %rcx
- subq %rcx, %rax
- movq %rax, -32(%rbp)
+ movl -32(%rbp), %eax
+ movl -24(%rbp), %ecx
+ subl %ecx, %eax
+ movl %eax, -32(%rbp)
  jmp loop_2
 endloop_2:
  leaq str_3(%rip), %rax
@@ -100,28 +101,28 @@ endloop_2:
  leaq print_fmt_str(%rip), %rdi
  movl $0, %eax
  call printf@PLT
- movq $10, %rax
- movq %rax, -8(%rbp)
- movq $1, %rax
- movq %rax, -16(%rbp)
- movq $2, %rax
- movq %rax, -24(%rbp)
- movq -8(%rbp), %rax
- movq %rax, -32(%rbp)
+ movl $10, %eax
+ movl %eax, -8(%rbp)
+ movl $1, %eax
+ movl %eax, -16(%rbp)
+ movl $2, %eax
+ movl %eax, -24(%rbp)
+ movl -8(%rbp), %eax
+ movl %eax, -32(%rbp)
 loop_3:
- movq -32(%rbp), %rax
- movq -16(%rbp), %rcx
- cmpq %rcx, %rax
+ movl -32(%rbp), %eax
+ movl -16(%rbp), %ecx
+ cmpl %ecx, %eax
  jl endloop_3
- movq -32(%rbp), %rax
- movq %rax, %rsi
+ movslq -32(%rbp), %rax
+ movslq %eax, %rsi
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax
  call printf@PLT
- movq -32(%rbp), %rax
- movq -24(%rbp), %rcx
- subq %rcx, %rax
- movq %rax, -32(%rbp)
+ movl -32(%rbp), %eax
+ movl -24(%rbp), %ecx
+ subl %ecx, %eax
+ movl %eax, -32(%rbp)
  jmp loop_3
 endloop_3:
 .end_main:

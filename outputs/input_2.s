@@ -11,9 +11,9 @@ main:
  pushq %rbp
  movq %rsp, %rbp
  subq $0, %rsp
- movl a(%rip), %eax
+ movslq a(%rip), %rax
  pushq %rax
- movl b(%rip), %eax
+ movslq b(%rip), %rax
  movq %rax, %rcx
  popq %rax
  addl %ecx, %eax

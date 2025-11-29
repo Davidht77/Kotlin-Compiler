@@ -8,5 +8,5 @@ fun unused(): Int {
 }
 
 fun main() {
-    println(helper()) // solo helper se usa; unused debe eliminarse en gencode
+    println(helper())
 }

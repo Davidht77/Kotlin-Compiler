@@ -46,19 +46,22 @@ Token* Scanner::nextToken() {
         while (current < input.length() && isdigit(input[current]))
             current++;
         
-        // Verificar si hay un punto decimal
-        if (current < input.length() && input[current] == '.') {
+        // Verificar si hay un punto decimal SOLO si va seguido de dígito
+        bool hasDot = false;
+        if (current + 1 < input.length() && input[current] == '.' && isdigit(input[current + 1])) {
+            hasDot = true;
             current++; // Consumir el punto
-            // Leer la parte fraccionaria
             while (current < input.length() && isdigit(input[current]))
                 current++;
-            // Es un número flotante (Double)
-            // Nota: Token::NUM se usa para ambos por ahora, el parser decidirá o se puede añadir Token::DOUBLE
-            // Si quieres distinguirlos en el scanner, necesitarías un nuevo tipo de token.
-            // Por ahora, asumiremos que Token::NUM maneja el string completo y el parser lo convierte.
+        }
+
+        int end = current;
+        // Consumir sufijos de literal (F/f, L/l) sin incluirlos en el lexema
+        if (current < input.length() && (input[current] == 'f' || input[current] == 'F' || input[current] == 'l' || input[current] == 'L')) {
+            current++;
         }
         
-        token = new Token(Token::NUM, input, first, current - first);
+        token = new Token(Token::NUM, input, first, end - first);
     }
     
     // 4. ID (Identificadores y Palabras Clave)

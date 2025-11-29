@@ -232,8 +232,8 @@ Type* TypeChecker::visit(FunDec* f) {
 
 Type* TypeChecker::visit(PrintStm* stm) {
     Type* t = stm->e->accept(this);
-    if (!(t->match(intType) || t->match(boolType) || t->match(stringType) || t->ttype == Type::DOUBLE || t->ttype == Type::FLOAT)) { 
-        cerr << "Error: tipo inválido en print (solo int, bool, string, double o float)." << endl;
+    if (!(t->isNumeric() || t->match(boolType) || t->match(stringType))) { 
+        cerr << "Error: tipo invalido en print (solo tipos numericos, bool o string)." << endl;
         exit(0);
     }
     return voidType;
@@ -352,8 +352,21 @@ Type* TypeChecker::visit(BinaryExp* e) {
                  resultType = new Type(Type::FLOAT);
             }
             else {
-                // Default to left type for integers (or largest)
-                resultType = left; 
+                auto rank = [](Type* t) {
+                    switch (t->ttype) {
+                        case Type::BYTE:
+                        case Type::UBYTE: return 1;
+                        case Type::SHORT:
+                        case Type::USHORT: return 2;
+                        case Type::INT:
+                        case Type::UINT: return 3;
+                        case Type::LONG:
+                        case Type::ULONG: return 4;
+                        default: return 0;
+                    }
+                };
+                Type* wider = (rank(left) >= rank(right)) ? left : right;
+                resultType = new Type(wider->ttype);
             }
             break;
 
@@ -471,13 +484,8 @@ Type* TypeChecker::visit(FcallExp* e) {
             exit(0);
         }
 
-        auto isIntegral = [](Type* t) {
-            return t->ttype == Type::BYTE || t->ttype == Type::SHORT || t->ttype == Type::INT || t->ttype == Type::LONG ||
-                   t->ttype == Type::UBYTE || t->ttype == Type::USHORT || t->ttype == Type::UINT || t->ttype == Type::ULONG;
-        };
-
-        if (!isIntegral(recvType)) {
-            cerr << "Error: conversion '" << e->nombre << "' solo permitida desde tipos enteros." << endl;
+        if (!recvType->isNumeric()) {
+            cerr << "Error: conversion '" << e->nombre << "' solo permitida desde tipos numericos." << endl;
             exit(0);
         }
 

@@ -10,7 +10,7 @@ sumarDos:
  movq %rsp, %rbp
  movl %edi,-8(%rbp)
  subq $16, %rsp
- movl -8(%rbp), %eax
+ movslq -8(%rbp), %rax
  pushq %rax
  movl $2, %eax
  movq %rax, %rcx
@@ -28,12 +28,12 @@ main:
  subq $16, %rsp
  movl $7, %eax
  movl %eax, -8(%rbp)
- movl -8(%rbp), %eax
+ movslq -8(%rbp), %rax
  movl %eax, %edi
  movl $0, %eax
 call sumarDos
  movl %eax, -16(%rbp)
- movl -16(%rbp), %eax
+ movslq -16(%rbp), %rax
  movslq %eax, %rsi
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax

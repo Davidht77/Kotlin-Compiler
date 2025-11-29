@@ -78,9 +78,61 @@ int getTypeSize(Type* t) {
     if (t->ttype == Type::SHORT || t->ttype == Type::USHORT) return 2;
 
     if (t->ttype == Type::INT || t->ttype == Type::UINT) return 4;
+    if (t->ttype == Type::FLOAT) return 4;
+    if (t->ttype == Type::DOUBLE) return 8;
     if (t->ttype == Type::LONG || t->ttype == Type::ULONG) return 8;
     if (t->ttype == Type::BOOL) return 1; // Bool as byte
     return 8; // Default
+}
+
+// Convertir el valor en RAX a un tipo destino, dejando el resultado en RAX/EAX
+static void convertValueTo(Type* src, Type* dst, ostream& out) {
+    if (!src || !dst || src->ttype == dst->ttype) return;
+
+    // Destino flotante
+    if (dst->ttype == Type::FLOAT) {
+        if (src->ttype == Type::DOUBLE) {
+            out << " movq %rax, %xmm0\n cvtsd2ss %xmm0, %xmm0\n movd %xmm0, %eax\n";
+            return;
+        }
+        if (src->ttype == Type::FLOAT) return;
+
+        // Entero -> float
+        int sz = getTypeSize(src);
+        if (sz == 1) out << " movsbq %al, %rax\n";
+        else if (sz == 2) out << " movswq %ax, %rax\n";
+        else if (sz == 4) out << " movslq %eax, %rax\n";
+        out << " cvtsi2ssq %rax, %xmm0\n movd %xmm0, %eax\n";
+        return;
+    }
+
+    if (dst->ttype == Type::DOUBLE) {
+        if (src->ttype == Type::FLOAT) {
+            out << " movd %eax, %xmm0\n cvtss2sd %xmm0, %xmm0\n movq %xmm0, %rax\n";
+            return;
+        }
+        if (src->ttype == Type::DOUBLE) return;
+
+        int sz = getTypeSize(src);
+        if (sz == 1) out << " movsbq %al, %rax\n";
+        else if (sz == 2) out << " movswq %ax, %rax\n";
+        else if (sz == 4) out << " movslq %eax, %rax\n";
+        out << " cvtsi2sdq %rax, %xmm0\n movq %xmm0, %rax\n";
+        return;
+    }
+
+    // Destino entero
+    if (src->ttype == Type::DOUBLE || src->ttype == Type::FLOAT) {
+        out << " movq %rax, %xmm0\n";
+        if (src->ttype == Type::DOUBLE)
+            out << " cvttsd2siq %xmm0, %rax\n";
+        else
+            out << " cvttss2siq %xmm0, %rax\n";
+    }
+    int dsz = getTypeSize(dst);
+    if (dsz == 1) out << " movsbq %al, %rax\n";
+    else if (dsz == 2) out << " movswq %ax, %rax\n";
+    else if (dsz == 4) out << " movslq %eax, %rax\n";
 }
 
 // Recolección de llamadas para eliminar funciones no usadas
@@ -229,6 +281,15 @@ int GenCodeVisitor::visit(Program* program) {
     // A. Recorrer VarDecs Globales para registrarlas y definirlas estáticamente.
     for (auto dec : program->vdlist){
         memoriaGlobal[dec->name] = true; // Registrar la variable como global
+        // Registrar tipo global
+        Type* gtype = nullptr;
+        if (!dec->type.empty()) {
+            gtype = new Type();
+            gtype->set_basic_type(dec->type);
+        } else if (dec->init && dec->init->inferredType) {
+            gtype = dec->init->inferredType;
+        }
+        tiposGlobales[dec->name] = gtype;
 
         // 1. Manejar StringExp para recolectar la literal (si es StringExp).
         if (dec->init) {
@@ -317,6 +378,14 @@ int GenCodeVisitor::visit(VarDec* stm) {
     
     if (!entornoFuncion) {
         memoriaGlobal[var] = true;
+        Type* destType = nullptr;
+        if (!stm->type.empty()) {
+            destType = new Type();
+            destType->set_basic_type(stm->type);
+        } else if (stm->init && stm->init->inferredType) {
+            destType = stm->init->inferredType;
+        }
+        tiposGlobales[var] = destType;
         if (stm->init) {
             StringExp* stringExp = dynamic_cast<StringExp*>(stm->init);
             if (stringExp) {
@@ -330,13 +399,22 @@ int GenCodeVisitor::visit(VarDec* stm) {
     } else { 
         // Use Environment for local variables
         env.add_var(var, offset);
+        Type* destType = nullptr;
+        if (!stm->type.empty()) {
+            destType = new Type();
+            destType->set_basic_type(stm->type);
+        } else if (stm->init && stm->init->inferredType) {
+            destType = stm->init->inferredType;
+        }
+        typeEnv.add_var(var, destType);
         int varOffset = offset;
         offset -= 8;
         
         if (stm->init) {
             stm->init->accept(this); 
-            // Store based on type size
-            int size = getTypeSize(stm->init->inferredType);
+            // Determinar tipo destino
+            convertValueTo(stm->init->inferredType, destType, out);
+            int size = getTypeSize(destType ? destType : stm->init->inferredType);
             string reg = getReg("rax", size);
             out << " mov" << getSuffix(size) << " " << reg << ", " << varOffset << "(%rbp)"<<endl;
         }
@@ -380,14 +458,48 @@ int GenCodeVisitor::visit(StringExp* exp) {
 
 int GenCodeVisitor::visit(IdExp* exp) {
     int size = getTypeSize(exp->inferredType);
-    string reg = getReg("rax", size);
+    if (exp->inferredType && exp->inferredType->ttype == Type::FLOAT) {
+        auto load = [&](const string& addr) {
+            out << " movl " << addr << ", %eax\n";
+        };
+        if (memoriaGlobal.count(exp->value))
+            load(exp->value + "(%rip)");
+        else {
+            int varOffset = env.lookup(exp->value);
+            load(to_string(varOffset) + "(%rbp)");
+        }
+        return 0;
+    }
+    if (exp->inferredType && exp->inferredType->ttype == Type::DOUBLE) {
+        auto load = [&](const string& addr) { out << " movq " << addr << ", %rax\n"; };
+        if (memoriaGlobal.count(exp->value))
+            load(exp->value + "(%rip)");
+        else {
+            int varOffset = env.lookup(exp->value);
+            load(to_string(varOffset) + "(%rbp)");
+        }
+        return 0;
+    }
+
+    bool isUnsigned = exp->inferredType && (
+        exp->inferredType->ttype == Type::UBYTE ||
+        exp->inferredType->ttype == Type::USHORT ||
+        exp->inferredType->ttype == Type::UINT ||
+        exp->inferredType->ttype == Type::ULONG
+    );
+
+    auto emitLoad = [&](const string& addr) {
+        if (size == 1) out << (isUnsigned ? " movzbq " : " movsbq ") << addr << ", %rax\n";
+        else if (size == 2) out << (isUnsigned ? " movzwq " : " movswq ") << addr << ", %rax\n";
+        else if (size == 4) out << " movslq " << addr << ", %rax\n";
+        else out << " movq " << addr << ", %rax\n";
+    };
 
     if (memoriaGlobal.count(exp->value))
-        out << " mov" << getSuffix(size) << " " << exp->value << "(%rip), " << reg << endl;
+        emitLoad(exp->value + "(%rip)");
     else {
-        // Lookup in environment
         int varOffset = env.lookup(exp->value);
-        out << " mov" << getSuffix(size) << " " << varOffset << "(%rbp), " << reg << endl;
+        emitLoad(to_string(varOffset) + "(%rbp)");
     }
     return 0;
 }
@@ -406,32 +518,29 @@ int GenCodeVisitor::visit(BinaryExp* exp) {
                              (exp->right->inferredType && (exp->right->inferredType->ttype == Type::DOUBLE || exp->right->inferredType->ttype == Type::FLOAT));
 
     if (operandsAreDouble) {
-        Exp* first = leftFirst ? exp->left : exp->right;
-        Exp* second = leftFirst ? exp->right : exp->left;
-
-        // Eval first
-        first->accept(this);
-        if (first->inferredType->isNumeric() && first->inferredType->ttype != Type::DOUBLE && first->inferredType->ttype != Type::FLOAT) {
-             out << " cvtsi2sdq %rax, %xmm0\n";
-             out << " movq %xmm0, %rax\n";
-        }
-        out << " pushq %rax\n"; // store first bits
-
-        // Eval second
-        second->accept(this);
-        if (second->inferredType->isNumeric() && second->inferredType->ttype != Type::DOUBLE && second->inferredType->ttype != Type::FLOAT) {
-             out << " cvtsi2sdq %rax, %xmm0\n";
-             out << " movq %xmm0, %rax\n";
-        }
+        auto loadToXmm = [&](Exp* e, const string& xmm) {
+            e->accept(this);
+            Type* t = e->inferredType;
+            if (t->ttype == Type::DOUBLE) {
+                out << " movq %rax, " << xmm << "\n";
+            } else if (t->ttype == Type::FLOAT) {
+                out << " movd %eax, " << xmm << "\n";
+                out << " cvtss2sd " << xmm << ", " << xmm << "\n";
+            } else { // entero
+                int sz = getTypeSize(t);
+                if (sz == 1) out << " movsbq %al, %rax\n";
+                else if (sz == 2) out << " movswq %ax, %rax\n";
+                else if (sz == 4) out << " movslq %eax, %rax\n";
+                out << " cvtsi2sdq %rax, " << xmm << "\n";
+            }
+        };
 
         if (leftFirst) {
-            out << " movq %rax, %xmm1\n"; // right -> xmm1
-            out << " popq %rax\n";
-            out << " movq %rax, %xmm0\n"; // left -> xmm0
+            loadToXmm(exp->left, "%xmm0");
+            loadToXmm(exp->right, "%xmm1");
         } else {
-            out << " movq %rax, %xmm0\n"; // left (evaluated second) -> xmm0
-            out << " popq %rax\n";
-            out << " movq %rax, %xmm1\n"; // right (evaluated first) -> xmm1
+            loadToXmm(exp->right, "%xmm1");
+            loadToXmm(exp->left, "%xmm0");
         }
 
         switch (exp->op) {
@@ -480,8 +589,13 @@ int GenCodeVisitor::visit(BinaryExp* exp) {
             default: out << " # Operator not supported for doubles yet\n"; break;
         }
         
-        // Result is in XMM0. Move bits back to RAX.
-        out << " movq %xmm0, %rax\n";
+        // Result is in XMM0. Convert to float if needed.
+        if (exp->inferredType && exp->inferredType->ttype == Type::FLOAT) {
+            out << " cvtsd2ss %xmm0, %xmm0\n";
+            out << " movd %xmm0, %eax\n";
+        } else {
+            out << " movq %xmm0, %rax\n";
+        }
         return 0;
     }
 
@@ -498,7 +612,7 @@ int GenCodeVisitor::visit(BinaryExp* exp) {
         out << " xchgq %rax, %rcx\n"; // asegurar rax=izq, rcx=der
     }
 
-    int size = getTypeSize(exp->left->inferredType); // Assume left determines size for arithmetic
+    int size = getTypeSize(exp->inferredType); // Use result type size
     string suffix = getSuffix(size);
     string regAx = getReg("rax", size);
     string regCx = getReg("rcx", size);
@@ -568,7 +682,14 @@ int GenCodeVisitor::visit(BinaryExp* exp) {
 
 int GenCodeVisitor::visit(AssignExp* stm) {
     stm->e->accept(this);
-    int size = getTypeSize(stm->e->inferredType);
+    Type* destType = nullptr;
+    if (memoriaGlobal.count(stm->id)) {
+        if (tiposGlobales.count(stm->id)) destType = tiposGlobales[stm->id];
+    } else {
+        destType = typeEnv.lookup(stm->id);
+    }
+    convertValueTo(stm->e->inferredType, destType, out);
+    int size = getTypeSize(destType ? destType : stm->e->inferredType);
     string reg = getReg("rax", size);
 
     if (memoriaGlobal.count(stm->id))
@@ -590,7 +711,12 @@ int GenCodeVisitor::visit(PrintStm* stm) {
         out << " leaq print_fmt_str(%rip), %rdi\n"; 
         out << " movl $0, %eax\n";
     } else if (stm->e->inferredType && (stm->e->inferredType->ttype == Type::DOUBLE || stm->e->inferredType->ttype == Type::FLOAT)) {
-        out << " movq %rax, %xmm0\n"; 
+        if (stm->e->inferredType->ttype == Type::FLOAT) {
+            out << " movd %eax, %xmm0\n";
+            out << " cvtss2sd %xmm0, %xmm0\n";
+        } else {
+            out << " movq %rax, %xmm0\n"; 
+        }
         out << " leaq print_fmt_float(%rip), %rdi\n"; 
         out << " movl $1, %eax\n";
     } else {
@@ -611,10 +737,12 @@ int GenCodeVisitor::visit(PrintStm* stm) {
 
 int GenCodeVisitor::visit(Block* b) {
     env.add_level(); // New scope
+    typeEnv.add_level();
     for (auto s : b->stmts){
         s->accept(this);
     }
     env.remove_level(); // End scope
+    typeEnv.remove_level();
     return 0;
 }
 
@@ -658,6 +786,7 @@ int GenCodeVisitor::visit(ForStmt* stm) {
     int saved_offset = offset;
     
     env.add_level(); // Scope for loop variable
+    typeEnv.add_level();
 
     Exp* range = stm->rangeExp;
     Exp* start = nullptr;
@@ -721,6 +850,8 @@ int GenCodeVisitor::visit(ForStmt* stm) {
     string var = stm->varName;
     // Add loop variable to environment
     env.add_var(var, offset);
+    static Type loopInt(Type::INT);
+    typeEnv.add_var(var, &loopInt);
     int varOffset = offset;
     offset -= 8;
     
@@ -755,6 +886,7 @@ int GenCodeVisitor::visit(ForStmt* stm) {
     out << "endloop_" << label << ":\n";
     
     env.remove_level(); // End loop scope
+    typeEnv.remove_level();
     offset = saved_offset;
     return 0;
 }
@@ -770,13 +902,15 @@ int GenCodeVisitor::visit(FunDec* f) {
     out << " movq %rsp, %rbp" << endl;
     
     env.add_level(); // Scope for function arguments and local variables
+    typeEnv.add_level();
     
     int size = f->Pnombres.size();
     for (int i = 0; i < size; i++) {
-        env.add_var(f->Pnombres[i], offset);
-        
         Type* t = new Type();
         t->set_basic_type(f->Ptipos[i]);
+        env.add_var(f->Pnombres[i], offset);
+        typeEnv.add_var(f->Pnombres[i], t);
+        
         int argSize = getTypeSize(t);
         string reg = getReg(argRegs[i], argSize);
         string suffix = getSuffix(argSize);
@@ -812,6 +946,7 @@ int GenCodeVisitor::visit(FunDec* f) {
     out << "leave" << endl;
     out << "ret" << endl;
     env.remove_level(); // Remove argument scope
+    typeEnv.remove_level();
     entornoFuncion = false;
     return 0;
 }
@@ -847,9 +982,21 @@ int GenCodeVisitor::visit(FcallExp* exp) {
             sourceType->ttype == Type::ULONG
         );
 
-        // Floating targets: convert integer source to double/float representation in RAX
+        // Floating targets
         if (targetType && (targetType->ttype == Type::DOUBLE || targetType->ttype == Type::FLOAT)) {
-            // Normalize source to 64 bits before conversion
+            // Si la fuente ya es float/double, usar conversion adecuada
+            if (sourceType && (sourceType->ttype == Type::DOUBLE || sourceType->ttype == Type::FLOAT)) {
+                out << " movq %rax, %xmm0\n";
+                if (sourceType->ttype == Type::DOUBLE && targetType->ttype == Type::FLOAT) {
+                    out << " cvtsd2ss %xmm0, %xmm0\n";
+                } else if (sourceType->ttype == Type::FLOAT && targetType->ttype == Type::DOUBLE) {
+                    out << " cvtss2sd %xmm0, %xmm0\n";
+                }
+                out << " movq %xmm0, %rax\n";
+                return 0;
+            }
+
+            // Fuente entera -> float/double
             if (isUnsignedSrc) {
                 if (sourceSize == 1) out << " movzbq %al, %rax\n";
                 else if (sourceSize == 2) out << " movzwq %ax, %rax\n";
@@ -859,8 +1006,27 @@ int GenCodeVisitor::visit(FcallExp* exp) {
                 else if (sourceSize == 2) out << " movswq %ax, %rax\n";
                 else out << " movslq %eax, %rax\n";
             }
-            out << " cvtsi2sdq %rax, %xmm0\n";
+            if (targetType->ttype == Type::DOUBLE) {
+                out << " cvtsi2sdq %rax, %xmm0\n";
+            } else {
+                out << " cvtsi2ssq %rax, %xmm0\n";
+            }
             out << " movq %xmm0, %rax\n";
+            return 0;
+        }
+
+        // Fuente float/double -> entero
+        if (sourceType && (sourceType->ttype == Type::DOUBLE || sourceType->ttype == Type::FLOAT) && !(targetType && (targetType->ttype == Type::DOUBLE || targetType->ttype == Type::FLOAT))) {
+            out << " movq %rax, %xmm0\n";
+            if (targetSize == 8) {
+                out << (sourceType->ttype == Type::DOUBLE ? " cvttsd2siq %xmm0, %rax\n" : " cvttss2siq %xmm0, %rax\n");
+            } else {
+                out << (sourceType->ttype == Type::DOUBLE ? " cvttsd2si %xmm0, %eax\n" : " cvttss2si %xmm0, %eax\n");
+            }
+            // Ajustar tamaño destino
+            if (targetSize == 1) out << " movsbq %al, %rax\n";
+            else if (targetSize == 2) out << " movswq %ax, %rax\n";
+            else if (targetSize == 4) out << " movslq %eax, %rax\n";
             return 0;
         }
 

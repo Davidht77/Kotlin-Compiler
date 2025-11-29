@@ -10,7 +10,7 @@ main:
  pushq %rbp
  movq %rsp, %rbp
  subq $0, %rsp
- movl x(%rip), %eax
+ movslq x(%rip), %rax
  movslq %eax, %rsi
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax

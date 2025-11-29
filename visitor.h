@@ -61,6 +61,8 @@ public:
     // Contexto de generación de código
     Environment<int> env; // lo que antes era memoria
     unordered_map<string, bool> memoriaGlobal;
+    unordered_map<string, Type*> tiposGlobales;
+    Environment<Type*> typeEnv; // tipos locales
     unordered_map<string, string> stringLiterals; // Para gestionar strings y sus etiquetas (NUEVO)
     int stringCont = 0; // Contador de etiquetas de strings (NUEVO)
     int offset = -8;

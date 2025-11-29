@@ -10,35 +10,39 @@ main:
  movq %rsp, %rbp
  subq $64, %rsp
  movl $127, %eax
- movl %eax, -8(%rbp)
+ movsbq %al, %rax
+ movb %al, -8(%rbp)
  movl $32, %eax
- movl %eax, -16(%rbp)
+ movswq %ax, %rax
+ movw %ax, -16(%rbp)
  movl $2, %eax
  movl %eax, -24(%rbp)
  movl $9545646, %eax
- movl %eax, -32(%rbp)
+ movq %rax, -32(%rbp)
  movabsq $4614256650576692846, %rax
- movq %rax, -40(%rbp)
+ movq %rax, %xmm0
+ cvtsd2ss %xmm0, %xmm0
+ movd %xmm0, %eax
+ movl %eax, -40(%rbp)
  movabsq $4614256656552045848, %rax
  movq %rax, -48(%rbp)
- movl -24(%rbp), %eax
+ movslq -24(%rbp), %rax
  pushq %rax
  movq -32(%rbp), %rax
  movq %rax, %rcx
  popq %rax
- addl %ecx, %eax
- movl %eax, -56(%rbp)
+ addq %rcx, %rax
+ movq %rax, -56(%rbp)
  movq -48(%rbp), %rax
- pushq %rax
- movq -40(%rbp), %rax
- movq %rax, %xmm1
- popq %rax
  movq %rax, %xmm0
+ movl -40(%rbp), %eax
+ movd %eax, %xmm1
+ cvtss2sd %xmm1, %xmm1
  divsd %xmm1, %xmm0
  movq %xmm0, %rax
  movq %rax, -64(%rbp)
- movl -56(%rbp), %eax
- movslq %eax, %rsi
+ movq -56(%rbp), %rax
+ movq %rax, %rsi
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax
  call printf@PLT

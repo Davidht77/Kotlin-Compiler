@@ -13,9 +13,9 @@ add:
  movl %edi,-8(%rbp)
  movl %esi,-16(%rbp)
  subq $16, %rsp
- movl -8(%rbp), %eax
+ movslq -8(%rbp), %rax
  pushq %rax
- movl -16(%rbp), %eax
+ movslq -16(%rbp), %rax
  movq %rax, %rcx
  popq %rax
  addl %ecx, %eax
@@ -29,14 +29,14 @@ main:
  pushq %rbp
  movq %rsp, %rbp
  subq $32, %rsp
- movl x(%rip), %eax
+ movslq x(%rip), %rax
  movl %eax, %edi
- movl y(%rip), %eax
+ movslq y(%rip), %rax
  movl %eax, %esi
  movl $0, %eax
 call add
  movl %eax, -8(%rbp)
- movl -8(%rbp), %eax
+ movslq -8(%rbp), %rax
  movslq %eax, %rsi
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax
@@ -44,18 +44,18 @@ call add
  movl $0, %eax
  movl %eax, -16(%rbp)
 while_0:
- movl -16(%rbp), %eax
+ movslq -16(%rbp), %rax
  pushq %rax
  movl $5, %eax
  movq %rax, %rcx
  popq %rax
- cmpl %ecx, %eax
+ cmpb %cl, %al
  movl $0, %eax
  setl %al
  movzbq %al, %rax
  cmpq $0, %rax
  je endwhile_0
- movl -16(%rbp), %eax
+ movslq -16(%rbp), %rax
  pushq %rax
  movl $2, %eax
  movq %rax, %rcx
@@ -67,13 +67,13 @@ while_0:
  movl $0, %eax
  movq %rax, %rcx
  popq %rax
- cmpl %ecx, %eax
+ cmpb %cl, %al
  movl $0, %eax
  sete %al
  movzbq %al, %rax
  cmpq $0, %rax
  je else_1
- movl -16(%rbp), %eax
+ movslq -16(%rbp), %rax
  movslq %eax, %rsi
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax
@@ -81,7 +81,7 @@ while_0:
  jmp endif_1
 else_1:
 endif_1:
- movl -16(%rbp), %eax
+ movslq -16(%rbp), %rax
  pushq %rax
  movl $1, %eax
  movq %rax, %rcx
@@ -90,22 +90,22 @@ endif_1:
  movl %eax, -16(%rbp)
  jmp while_0
 endwhile_0:
- movl x(%rip), %eax
+ movslq x(%rip), %rax
  pushq %rax
- movl y(%rip), %eax
+ movslq y(%rip), %rax
  movq %rax, %rcx
  popq %rax
- cmpl %ecx, %eax
+ cmpb %cl, %al
  movl $0, %eax
  setg %al
  movzbq %al, %rax
  pushq %rax
- movl -8(%rbp), %eax
+ movslq -8(%rbp), %rax
  pushq %rax
  movl $0, %eax
  movq %rax, %rcx
  popq %rax
- cmpl %ecx, %eax
+ cmpb %cl, %al
  movl $0, %eax
  setne %al
  movzbq %al, %rax
@@ -113,7 +113,7 @@ endwhile_0:
  popq %rax
  andb %cl, %al
  movb %al, -24(%rbp)
- movb -24(%rbp), %al
+ movsbq -24(%rbp), %rax
  movsbq %al, %rsi
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax

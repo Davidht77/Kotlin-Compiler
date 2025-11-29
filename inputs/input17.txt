@@ -1,9 +1,7 @@
 fun main(){
-    if (0) {
+    if (false) {
         println(1)
-    } 
-    else {
+    } else {
         println(42)
     }
-
 }

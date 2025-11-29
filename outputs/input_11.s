@@ -15,23 +15,17 @@ main:
  movq %rax, -16(%rbp)
  movl $30, %eax
  movl %eax, -24(%rbp)
- movl -8(%rbp), %eax
+ movslq -8(%rbp), %rax
+ movslq %eax, %rax
  cvtsi2sdq %rax, %xmm0
- movq %xmm0, %rax
- pushq %rax
  movq -16(%rbp), %rax
  movq %rax, %xmm1
- popq %rax
- movq %rax, %xmm0
  addsd %xmm1, %xmm0
  movq %xmm0, %rax
- pushq %rax
- movl -24(%rbp), %eax
- cvtsi2sdq %rax, %xmm0
- movq %xmm0, %rax
- movq %rax, %xmm1
- popq %rax
  movq %rax, %xmm0
+ movslq -24(%rbp), %rax
+ movslq %eax, %rax
+ cvtsi2sdq %rax, %xmm1
  addsd %xmm1, %xmm0
  movq %xmm0, %rax
  movq %rax, %xmm0

@@ -11,7 +11,7 @@ main:
  subq $16, %rsp
  movl $14, %eax
  movl %eax, -8(%rbp)
- movl -8(%rbp), %eax
+ movslq -8(%rbp), %rax
  movslq %eax, %rsi
  leaq print_fmt_num(%rip), %rdi
  movl $0, %eax
