@@ -29,10 +29,10 @@ main:
  pushq %rbp
  movq %rsp, %rbp
  subq $32, %rsp
- movq x(%rip), %rax
- movq %rax, %rdi
- movq y(%rip), %rax
- movq %rax, %rsi
+ movl x(%rip), %eax
+ movl %eax, %edi
+ movl y(%rip), %eax
+ movl %eax, %esi
  movl $0, %eax
 call add
  movl %eax, -8(%rbp)

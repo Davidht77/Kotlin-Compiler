@@ -1,5 +1,6 @@
 #include "ast.h"
 #include <iostream>
+#include <algorithm>
 
 using namespace std;
 
@@ -26,23 +27,52 @@ string Exp::binopToChar(BinaryOp op) {
     }
 }
 
-BinaryExp::BinaryExp(Exp* l, Exp* r, BinaryOp op) : left(l), right(r), op(op) {}
+BinaryExp::BinaryExp(Exp* l, Exp* r, BinaryOp op) : left(l), right(r), op(op) {
+    // Constant folding
+    if (left && right && left->isnumber && right->isnumber) {
+        isnumber = true;
+        switch(op) {
+            case PLUS_OP:  valor = left->valor + right->valor; break;
+            case MINUS_OP: valor = left->valor - right->valor; break;
+            case MUL_OP:   valor = left->valor * right->valor; break;
+            case DIV_OP:   valor = (right->valor != 0) ? left->valor / right->valor : 0; break;
+            case MOD_OP:   valor = (right->valor != 0) ? left->valor % right->valor : 0; break;
+            case LE_OP:    valor = left->valor <= right->valor; break;
+            case LT_OP:    valor = left->valor <  right->valor; break;
+            case GT_OP:    valor = left->valor >  right->valor; break;
+            case GE_OP:    valor = left->valor >= right->valor; break;
+            case EQ_OP:    valor = left->valor == right->valor; break;
+            case NE_OP:    valor = left->valor != right->valor; break;
+            case AND_OP:   valor = (left->valor != 0) && (right->valor != 0); break;
+            case OR_OP:    valor = (left->valor != 0) || (right->valor != 0); break;
+            default:       valor = 0; break;
+        }
+    } else {
+        isnumber = false;
+        valor = 0;
+    }
+
+    // Sethi-Ullman weight
+    int le = left ? left->etiqueta : 0;
+    int ri = right ? right->etiqueta : 0;
+    etiqueta = (le == ri) ? le + 1 : max(le, ri);
+}
 BinaryExp::~BinaryExp() { delete left; delete right; }
 
-NumberExp::NumberExp(int v) : value(v) {}
+NumberExp::NumberExp(int v) : value(v) { isnumber = true; valor = v; etiqueta = 0; }
 NumberExp::~NumberExp() {}
 
-DoubleExp::DoubleExp(double v) : value(v) {}
+DoubleExp::DoubleExp(double v) : value(v) { isnumber = false; valor = 0; etiqueta = 0; }
 DoubleExp::~DoubleExp() {}
 
-BoolExp::BoolExp(bool v) : value(v) {}
+BoolExp::BoolExp(bool v) : value(v) { isnumber = true; valor = v ? 1 : 0; etiqueta = 0; }
 BoolExp::~BoolExp() {}
 
 // Implementación de StringExp << NUEVO >>
-StringExp::StringExp(string v) : value(v) {}
+StringExp::StringExp(string v) : value(v) { isnumber = false; valor = 0; etiqueta = 0; }
 StringExp::~StringExp() {}
 
-IdExp::IdExp(string v) : value(v) {}
+IdExp::IdExp(string v) : value(v) { isnumber = false; valor = 0; etiqueta = 0; }
 IdExp::~IdExp() {}
 
 VarDec::VarDec(string name, string type, Exp* init, bool isConst) 

@@ -48,6 +48,10 @@ public:
     static string binopToChar(BinaryOp op);  // Conversión operador → string
     virtual Type* accept(TypeVisitor* visitor) = 0; // Para verificador de tipos
     Type* inferredType = nullptr; // Para guardar el tipo inferido
+    // Optimizaciones
+    bool isnumber = false; // ¿Se resolvió en compilación?
+    int valor = 0;         // Valor constante plegado
+    int etiqueta = 0;      // Peso para Sethi-Ullman
 };
 
 // Expresión binaria

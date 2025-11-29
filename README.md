@@ -95,9 +95,10 @@ StmtTerminator  ::= ";" | Newline
 
 ## Optimizaciones implementadas (Al menos 3)
 
--Optimizar constantes (gencode)
--Optimizar de condicionales (gencode)
--Optimizar funciones (gencode) (funciones que no se usan)
+- Plegado de constantes (constant folding) en el AST y generación de código.
+- Eliminación de ramas muertas cuando la condición es constante.
+- Orden de evaluación con Sethi-Ullman para reducir uso de registros/pila.
+- No se emite ensamblador para funciones no alcanzables desde `main` (eliminación de funciones no usadas).
 
 ## Casos de prueba
 

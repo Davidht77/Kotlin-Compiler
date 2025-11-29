@@ -3,6 +3,7 @@
 #include "visitor.h"
 #include "semantic_types.h"
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <algorithm>
 #include <cstring>
@@ -80,6 +81,62 @@ int getTypeSize(Type* t) {
     if (t->ttype == Type::LONG || t->ttype == Type::ULONG) return 8;
     if (t->ttype == Type::BOOL) return 1; // Bool as byte
     return 8; // Default
+}
+
+// Recolección de llamadas para eliminar funciones no usadas
+static void collectCallsFromExp(Exp* e, unordered_set<string>& calls) {
+    if (!e) return;
+    if (auto b = dynamic_cast<BinaryExp*>(e)) {
+        collectCallsFromExp(b->left, calls);
+        collectCallsFromExp(b->right, calls);
+    } else if (auto f = dynamic_cast<FcallExp*>(e)) {
+        calls.insert(f->nombre);
+        for (auto arg : f->argumentos) collectCallsFromExp(arg, calls);
+        collectCallsFromExp(f->receiver, calls);
+    } else if (auto a = dynamic_cast<AssignExp*>(e)) {
+        collectCallsFromExp(a->e, calls);
+    }
+}
+
+static void collectCallsFromStm(Stm* s, unordered_set<string>& calls) {
+    if (!s) return;
+
+    if (auto e = dynamic_cast<Exp*>(s)) {
+        collectCallsFromExp(e, calls);
+        return;
+    }
+    if (auto v = dynamic_cast<VarDec*>(s)) {
+        collectCallsFromExp(v->init, calls);
+        return;
+    }
+    if (auto p = dynamic_cast<PrintStm*>(s)) {
+        collectCallsFromExp(p->e, calls);
+        return;
+    }
+    if (auto r = dynamic_cast<ReturnStm*>(s)) {
+        collectCallsFromExp(r->e, calls);
+        return;
+    }
+    if (auto b = dynamic_cast<Block*>(s)) {
+        for (auto st : b->stmts) collectCallsFromStm(st, calls);
+        return;
+    }
+    if (auto i = dynamic_cast<IfStmt*>(s)) {
+        collectCallsFromExp(i->condition, calls);
+        collectCallsFromStm(i->thenBlock, calls);
+        collectCallsFromStm(i->elseBlock, calls);
+        return;
+    }
+    if (auto w = dynamic_cast<WhileStmt*>(s)) {
+        collectCallsFromExp(w->condition, calls);
+        collectCallsFromStm(w->block, calls);
+        return;
+    }
+    if (auto f = dynamic_cast<ForStmt*>(s)) {
+        collectCallsFromExp(f->rangeExp, calls);
+        collectCallsFromStm(f->block, calls);
+        return;
+    }
 }
 
 int BinaryExp::accept(Visitor* visitor) {
@@ -213,8 +270,33 @@ int GenCodeVisitor::visit(Program* program) {
         out << " ret\n";
     }
 
-    // Funciones
+    // Determinar qué funciones están realmente usadas (alcanzables desde main)
+    unordered_map<string, FunDec*> funcMap;
+    for (auto dec : program->fdlist) funcMap[dec->nombre] = dec;
+
+    unordered_set<string> used;
+    if (funcMap.count("main")) {
+        vector<string> stack = {"main"};
+        while (!stack.empty()) {
+            string fname = stack.back();
+            stack.pop_back();
+            if (!used.insert(fname).second) continue; // ya visitada
+            auto it = funcMap.find(fname);
+            if (it == funcMap.end()) continue;
+            unordered_set<string> directCalls;
+            collectCallsFromStm(it->second->cuerpo, directCalls);
+            for (auto& c : directCalls) {
+                if (funcMap.count(c) && !used.count(c)) stack.push_back(c);
+            }
+        }
+    } else {
+        // Sin main definido: no eliminamos nada por seguridad
+        for (auto dec : program->fdlist) used.insert(dec->nombre);
+    }
+
+    // Funciones (solo las usadas)
     for (auto dec : program->fdlist){
+        if (!used.count(dec->nombre)) continue; // función no utilizada
         dec->accept(this);
     }
 
@@ -311,33 +393,46 @@ int GenCodeVisitor::visit(IdExp* exp) {
 }
 
 int GenCodeVisitor::visit(BinaryExp* exp) {
+    // Constant folding: si ya está evaluado, emite inmediato
+    if (exp->isnumber) {
+        int size = getTypeSize(exp->inferredType);
+        string reg = getReg("rax", size);
+        out << " mov" << getSuffix(size) << " $" << exp->valor << ", " << reg << "\n";
+        return 0;
+    }
+
+    bool leftFirst = exp->left->etiqueta >= exp->right->etiqueta;
     bool operandsAreDouble = (exp->left->inferredType && (exp->left->inferredType->ttype == Type::DOUBLE || exp->left->inferredType->ttype == Type::FLOAT)) ||
                              (exp->right->inferredType && (exp->right->inferredType->ttype == Type::DOUBLE || exp->right->inferredType->ttype == Type::FLOAT));
 
     if (operandsAreDouble) {
-        // Evaluate Left
-        exp->left->accept(this);
-        // Convert to double if int
-        if (exp->left->inferredType->isNumeric() && exp->left->inferredType->ttype != Type::DOUBLE && exp->left->inferredType->ttype != Type::FLOAT) {
-             out << " cvtsi2sdq %rax, %xmm0\n";
-             out << " movq %xmm0, %rax\n";
-        }
-        out << " pushq %rax\n"; // Push bits of left operand
+        Exp* first = leftFirst ? exp->left : exp->right;
+        Exp* second = leftFirst ? exp->right : exp->left;
 
-        // Evaluate Right
-        exp->right->accept(this);
-        // Convert to double if int
-        if (exp->right->inferredType->isNumeric() && exp->right->inferredType->ttype != Type::DOUBLE && exp->right->inferredType->ttype != Type::FLOAT) {
+        // Eval first
+        first->accept(this);
+        if (first->inferredType->isNumeric() && first->inferredType->ttype != Type::DOUBLE && first->inferredType->ttype != Type::FLOAT) {
              out << " cvtsi2sdq %rax, %xmm0\n";
              out << " movq %xmm0, %rax\n";
         }
-        
-        // Right is in RAX (bits). Move to XMM1.
-        out << " movq %rax, %xmm1\n";
-        
-        // Pop Left to RAX, then move to XMM0.
-        out << " popq %rax\n";
-        out << " movq %rax, %xmm0\n";
+        out << " pushq %rax\n"; // store first bits
+
+        // Eval second
+        second->accept(this);
+        if (second->inferredType->isNumeric() && second->inferredType->ttype != Type::DOUBLE && second->inferredType->ttype != Type::FLOAT) {
+             out << " cvtsi2sdq %rax, %xmm0\n";
+             out << " movq %xmm0, %rax\n";
+        }
+
+        if (leftFirst) {
+            out << " movq %rax, %xmm1\n"; // right -> xmm1
+            out << " popq %rax\n";
+            out << " movq %rax, %xmm0\n"; // left -> xmm0
+        } else {
+            out << " movq %rax, %xmm0\n"; // left (evaluated second) -> xmm0
+            out << " popq %rax\n";
+            out << " movq %rax, %xmm1\n"; // right (evaluated first) -> xmm1
+        }
 
         switch (exp->op) {
             case PLUS_OP:  out << " addsd %xmm1, %xmm0\n"; break;
@@ -390,10 +485,18 @@ int GenCodeVisitor::visit(BinaryExp* exp) {
         return 0;
     }
 
-    exp->left->accept(this);
-    out << " pushq %rax\n";
-    exp->right->accept(this);
-    out << " movq %rax, %rcx\n popq %rax\n";
+    if (leftFirst) {
+        exp->left->accept(this);
+        out << " pushq %rax\n";
+        exp->right->accept(this);
+        out << " movq %rax, %rcx\n popq %rax\n";
+    } else {
+        exp->right->accept(this);
+        out << " pushq %rax\n";
+        exp->left->accept(this);
+        out << " movq %rax, %rcx\n popq %rax\n";
+        out << " xchgq %rax, %rcx\n"; // asegurar rax=izq, rcx=der
+    }
 
     int size = getTypeSize(exp->left->inferredType); // Assume left determines size for arithmetic
     string suffix = getSuffix(size);
@@ -516,6 +619,16 @@ int GenCodeVisitor::visit(Block* b) {
 }
 
 int GenCodeVisitor::visit(IfStmt* stm) {
+    // Dead code elimination cuando la condición es constante
+    if (stm->condition->isnumber) {
+        if (stm->condition->valor != 0) {
+            stm->thenBlock->accept(this);
+        } else if (stm->elseBlock) {
+            stm->elseBlock->accept(this);
+        }
+        return 0;
+    }
+
     int label = labelcont++;
     stm->condition->accept(this);
     out << " cmpq $0, %rax"<<endl;

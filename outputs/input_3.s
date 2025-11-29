@@ -28,8 +28,8 @@ main:
  subq $16, %rsp
  movl $7, %eax
  movl %eax, -8(%rbp)
- movq -8(%rbp), %rax
- movq %rax, %rdi
+ movl -8(%rbp), %eax
+ movl %eax, %edi
  movl $0, %eax
 call sumarDos
  movl %eax, -16(%rbp)

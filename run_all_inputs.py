@@ -31,7 +31,7 @@ input_dir = "inputs"
 output_dir = "outputs"
 os.makedirs(output_dir, exist_ok=True)
 
-for i in range(1, 8):
+for i in range(1, 19):
     filename = f"input{i}.txt"
     filepath = os.path.join(input_dir, filename)
 
